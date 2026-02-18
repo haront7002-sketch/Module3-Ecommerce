@@ -1,32 +1,43 @@
-const bcrypt = require('bcrypt');
 
-const users = [];
+const pool = require('../config/db');
 
 const User = {
-    create: async ({email, password, name, country, zip_code}) => {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = {
-            id: user + length + 1,
-            email,
-            password: hashedPassword,
-            name: name || nulll,
-            country: country || null,
-            zip_code: zip_code || null,
-            created_at: new Date()
-        };
 
-        user.push(newUser);
-        return newUser;
+    // Create user
+    create: async (userData) => {
+        const {
+            user_name,
+            user_surname,
+            email,
+            password,
+            country,
+            zip_code
+        } = userData;
+
+        const [result] = await pool.execute(
+            `INSERT INTO users 
+            (user_name, user_surname, email, password, country, zip_code, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+            [user_name, user_surname, email, password, country, zip_code]
+        );
+
+        return {
+             user_id: result.insertId,
+            email
+        };
     },
 
+    // Find user by email
     findByEmail: async (email) => {
-        return users.find(u => u.email === email);
+        const [rows] = await pool.execute(
+            `SELECT * FROM users WHERE email = ?`,
+            [email]
+        );
 
+        return rows[0];
     }
 
 };
 
-module.experts = User;
-
-
+module.exports = User;
 
