@@ -1,5 +1,6 @@
 import {db} from '../Config/database.js'
 
+// Add to favourites
 const postFavouritesDb = async (user_id, event_id) => {
     const [result] = await db.query(
         'INSERT INTO favourites (user_id, event_id, created_at) VALUES (?, ?, UNIX_TIMESTAMP())',
@@ -9,8 +10,8 @@ const postFavouritesDb = async (user_id, event_id) => {
     
 };
 
-
-const checkFavouritesDb = async (user_id, event_id) => {
+// Check if event is in favourites
+const getFavouritesCheckDb = async (user_id, event_id) => {
     const [rows] = await db.query(
         'SELECT * FROM favourites WHERE user_id = ? AND event_id = ?',
         [user_id, event_id]
@@ -18,6 +19,7 @@ const checkFavouritesDb = async (user_id, event_id) => {
     return rows;
 };
 
+// Get all favourites for a user
 const getUserFavouritesDb = async (user_id) => {
     const [rows] = await db.query(`
         SELECT f.*, e.event_title, e.description, e.date, e.location, e.price, e.image_url 
@@ -29,4 +31,13 @@ const getUserFavouritesDb = async (user_id) => {
     return rows;
 };
 
-export { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb };
+// Remove from favourites
+const deleteFavouritesDb = async (user_id, event_id) => {
+    const [result] = await db.query(
+        'DELETE FROM favourites WHERE user_id = ? AND event_id = ?',
+        [user_id, event_id]
+    );
+    return result;
+};
+
+export { postFavouritesDb, getFavouritesCheckDb, getUserFavouritesDb, deleteFavouritesDb};
