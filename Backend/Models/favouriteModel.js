@@ -12,6 +12,8 @@ const postFavouritesDb = async (user_id, event_id) => {
 
 // Check if event is in favourites
 const getFavouritesCheckDb = async (user_id, event_id) => {
+
+const checkFavouritesDb = async (user_id, event_id) => {
     const [rows] = await db.query(
         'SELECT * FROM favourites WHERE user_id = ? AND event_id = ?',
         [user_id, event_id]
@@ -41,3 +43,4 @@ const deleteFavouritesDb = async (user_id, event_id) => {
 };
 
 export { postFavouritesDb, getFavouritesCheckDb, getUserFavouritesDb, deleteFavouritesDb};
+export { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb };

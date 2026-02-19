@@ -1,27 +1,5 @@
-import { postFavouritesDb, getFavouritesCheckDb, getUserFavouritesDb, deleteFavouritesDb } from '../Models/favouriteModel.js';
+import { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb } from '../Models/favouriteModel.js';
 
-// GET /favourites/:user_id - Get all favourites for a user
-const getFavouritesCon = async (req, res) => {
-    try {
-        const user_id = req.params.user_id;
-        
-        const favourites = await getUserFavouritesDb(user_id);
-        
-        res.status(200).json({ 
-            success: true, 
-            favourites: favourites 
-        });
-        
-    } catch (error) {
-        console.error('Error fetching favourites:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error fetching favourites' 
-        });
-    }
-};
-
-// POST /favourites - Add to favourites
 const postFavouriteCon = async (req, res) => {
     try {
         const { user_id, event_id } = req.body;
@@ -35,7 +13,7 @@ const postFavouriteCon = async (req, res) => {
         }
         
         // Check if already in favourites
-        const existing = await getFavouritesCheckDb(user_id, event_id);
+        const existing = await checkFavouritesDb(user_id, event_id);
         
         if (existing.length > 0) {
             return res.status(400).json({ 
@@ -99,3 +77,24 @@ const deleteFavouriteCon = async (req, res) => {
 };
 
 export { getFavouritesCon, postFavouriteCon, deleteFavouriteCon };
+const getFavouritesCon = async (req, res) => {
+    try {
+        const user_id = req.params.user_id;
+        
+        const favourites = await getUserFavouritesDb(user_id);
+        
+        res.status(200).json({ 
+            success: true, 
+            favourites: favourites 
+        });
+        
+    } catch (error) {
+        console.error('Error fetching favourites:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching favourites' 
+        });
+    }
+};
+
+export { postFavouriteCon, getFavouritesCon };
