@@ -40,6 +40,43 @@ const postFavouriteCon = async (req, res) => {
     }
 };
 
+// DELETE /favourites - Remove from favourites
+const deleteFavouriteCon = async (req, res) => {
+    try {
+        const { user_id, event_id } = req.body;
+        
+        if (!user_id || !event_id) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'User ID and Event ID are required' 
+            });
+        }
+        
+        const result = await deleteFavouritesDb(user_id, event_id);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Favourite not found' 
+            });
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Removed from favourites successfully' 
+        });
+        
+    } catch (error) {
+        console.error('Error in removeUserFavourite:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error removing from favourites',
+            error: error.message 
+        });
+    }
+};
+
+export { getFavouritesCon, postFavouriteCon, deleteFavouriteCon };
 const getFavouritesCon = async (req, res) => {
     try {
         const user_id = req.params.user_id;
