@@ -1,4 +1,4 @@
-import { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb } from '../Models/favouriteModel.js';
+import { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb, deleteFavouritesDb } from '../Models/favouriteModel.js';
 
 const postFavouriteCon = async (req, res) => {
     try {
@@ -76,7 +76,6 @@ const deleteFavouriteCon = async (req, res) => {
     }
 };
 
-export { getFavouritesCon, postFavouriteCon, deleteFavouriteCon };
 const getFavouritesCon = async (req, res) => {
     try {
         const user_id = req.params.user_id;
@@ -97,4 +96,4 @@ const getFavouritesCon = async (req, res) => {
     }
 };
 
-export { postFavouriteCon, getFavouritesCon };
+export { postFavouriteCon, getFavouritesCon, deleteFavouriteCon };

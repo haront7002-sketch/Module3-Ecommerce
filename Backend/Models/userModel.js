@@ -1,5 +1,4 @@
-
-const pool = require('../config/db');
+import { db as pool } from '../Config/database.js';
 
 const User = {
 
@@ -39,5 +38,4 @@ const User = {
 
 };
 
-module.exports = User;
-
+export default User;

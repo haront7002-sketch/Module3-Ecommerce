@@ -1,8 +1,11 @@
+import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
 import {cartRoutes} from './Routes/cartRoute.js';
 import {favouriteRoutes} from './Routes/favouriteRoute.js';
 import authRoutes from './Routes/authRoutes.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;

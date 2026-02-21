@@ -13,5 +13,5 @@ const db = mysql.createPool({
     queueLimit: 0
 });
 
-
-export {db};
+export { db };
+export default db;
