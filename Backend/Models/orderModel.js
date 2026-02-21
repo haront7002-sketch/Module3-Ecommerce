@@ -17,7 +17,6 @@ const postOrderItemsDb = async (order_id, cart_items, query_db = db) => {
         item.quantity,
         item.price
     ]);
-    
     const [result] = await query_db.query(
         'INSERT INTO order_items (order_id, event_id, quantity, price) VALUES ?',
         [values]
@@ -28,7 +27,7 @@ const postOrderItemsDb = async (order_id, cart_items, query_db = db) => {
 // SECTION: Read single order with items
 const getOrderByIdDb = async (order_id, query_db = db) => {
     const [rows] = await query_db.query(`
-        SELECT o.*, 
+        SELECT o.*,
                JSON_ARRAYAGG(
                    JSON_OBJECT(
                        'event_id', oi.event_id,
@@ -43,14 +42,13 @@ const getOrderByIdDb = async (order_id, query_db = db) => {
         WHERE o.order_id = ?
         GROUP BY o.order_id
     `, [order_id]);
-    
     return rows[0];
 };
 
 // SECTION: Read all orders for one user
 const getUserOrdersDb = async (user_id, query_db = db) => {
     const [rows] = await query_db.query(`
-        SELECT o.*, 
+        SELECT o.*,
                COUNT(oi.items_id) as item_count,
                SUM(oi.quantity) as total_items
         FROM orders o
@@ -59,7 +57,6 @@ const getUserOrdersDb = async (user_id, query_db = db) => {
         GROUP BY o.order_id
         ORDER BY o.created_at DESC
     `, [user_id]);
-    
     return rows;
 };
 

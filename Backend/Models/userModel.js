@@ -1,4 +1,4 @@
-import { db as pool } from '../Config/database.js';
+import db from '../Config/database.js';
 
 const User = {
 
@@ -13,7 +13,7 @@ const User = {
             zip_code
         } = userData;
 
-        const [result] = await pool.execute(
+        const [result] = await db.execute(
             `INSERT INTO users 
             (user_name, user_surname, email, password, country, zip_code, created_at)
             VALUES (?, ?, ?, ?, ?, ?, NOW())`,
@@ -28,7 +28,7 @@ const User = {
 
     // Find user by email
     findByEmail: async (email) => {
-        const [rows] = await pool.execute(
+        const [rows] = await db.execute(
             `SELECT * FROM users WHERE email = ?`,
             [email]
         );

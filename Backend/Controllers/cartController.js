@@ -31,7 +31,32 @@ const postCartCon = async (req, res) => {
             });
         }
 
-        const result = await postCartDb(user_id, event_id, quantity);
+        const parsed_user_id = Number(user_id);
+        const parsed_event_id = Number(event_id);
+        const parsed_quantity = Number(quantity);
+
+        if (!Number.isInteger(parsed_user_id) || parsed_user_id <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'user_id must be a positive integer'
+            });
+        }
+
+        if (!Number.isInteger(parsed_event_id) || parsed_event_id <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'event_id must be a positive integer'
+            });
+        }
+
+        if (!Number.isFinite(parsed_quantity) || parsed_quantity <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'quantity must be a positive number'
+            });
+        }
+
+        const result = await postCartDb(parsed_user_id, parsed_event_id, parsed_quantity);
 
         res.status(201).json({
             success: true,
@@ -61,7 +86,15 @@ const patchCartQuantityCon = async (req, res) => {
             });
         }
 
-        const result = await patchCartQuantityDb(cart_id, quantity);
+        const parsed_quantity = Number(quantity);
+        if (!Number.isFinite(parsed_quantity) || parsed_quantity <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'quantity must be a positive number'
+            });
+        }
+
+        const result = await patchCartQuantityDb(cart_id, parsed_quantity);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({

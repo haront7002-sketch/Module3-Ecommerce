@@ -40,6 +40,26 @@ const postFavouriteCon = async (req, res) => {
     }
 };
 
+const getFavouritesCon = async (req, res) => {
+    try {
+        const user_id = req.params.user_id;
+        
+        const favourites = await getUserFavouritesDb(user_id);
+        
+        res.status(200).json({ 
+            success: true, 
+            favourites: favourites 
+        });
+        
+    } catch (error) {
+        console.error('Error fetching favourites:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching favourites' 
+        });
+    }
+};
+
 // DELETE /favourites - Remove from favourites
 const deleteFavouriteCon = async (req, res) => {
     try {
@@ -76,24 +96,4 @@ const deleteFavouriteCon = async (req, res) => {
     }
 };
 
-const getFavouritesCon = async (req, res) => {
-    try {
-        const user_id = req.params.user_id;
-        
-        const favourites = await getUserFavouritesDb(user_id);
-        
-        res.status(200).json({ 
-            success: true, 
-            favourites: favourites 
-        });
-        
-    } catch (error) {
-        console.error('Error fetching favourites:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error fetching favourites' 
-        });
-    }
-};
-
-export { postFavouriteCon, getFavouritesCon, deleteFavouriteCon };
+export { getFavouritesCon, postFavouriteCon, deleteFavouriteCon };

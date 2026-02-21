@@ -7,7 +7,6 @@ const postFavouritesDb = async (user_id, event_id) => {
         [user_id, event_id]
     );
     return result;
-    
 };
 
 // Check if event is in favourites

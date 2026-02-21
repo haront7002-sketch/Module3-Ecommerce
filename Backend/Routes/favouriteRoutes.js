@@ -12,4 +12,4 @@ router.post('/favourites', postFavouriteCon);
 // DELETE /api/favourites - Remove from favourites
 router.delete('/favourites', deleteFavouriteCon);
 
-export {router as favouriteRoutes};
+export { router as favouriteRoutes };
