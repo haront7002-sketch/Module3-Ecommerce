@@ -1,4 +1,4 @@
-import { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb } from '../Models/favouriteModel.js';
+import { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb, deleteFavouritesDb } from '../Models/favouriteModel.js';
 
 const postFavouriteCon = async (req, res) => {
     try {
@@ -40,6 +40,26 @@ const postFavouriteCon = async (req, res) => {
     }
 };
 
+const getFavouritesCon = async (req, res) => {
+    try {
+        const user_id = req.params.user_id;
+        
+        const favourites = await getUserFavouritesDb(user_id);
+        
+        res.status(200).json({ 
+            success: true, 
+            favourites: favourites 
+        });
+        
+    } catch (error) {
+        console.error('Error fetching favourites:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching favourites' 
+        });
+    }
+};
+
 // DELETE /favourites - Remove from favourites
 const deleteFavouriteCon = async (req, res) => {
     try {
@@ -77,24 +97,3 @@ const deleteFavouriteCon = async (req, res) => {
 };
 
 export { getFavouritesCon, postFavouriteCon, deleteFavouriteCon };
-const getFavouritesCon = async (req, res) => {
-    try {
-        const user_id = req.params.user_id;
-        
-        const favourites = await getUserFavouritesDb(user_id);
-        
-        res.status(200).json({ 
-            success: true, 
-            favourites: favourites 
-        });
-        
-    } catch (error) {
-        console.error('Error fetching favourites:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error fetching favourites' 
-        });
-    }
-};
-
-export { postFavouriteCon, getFavouritesCon };

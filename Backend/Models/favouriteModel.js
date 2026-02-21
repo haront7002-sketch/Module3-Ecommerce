@@ -1,4 +1,4 @@
-import {db} from '../Config/database.js'
+import { db } from '../Config/database.js';
 
 // Add to favourites
 const postFavouritesDb = async (user_id, event_id) => {
@@ -7,12 +7,9 @@ const postFavouritesDb = async (user_id, event_id) => {
         [user_id, event_id]
     );
     return result;
-    
 };
 
 // Check if event is in favourites
-const getFavouritesCheckDb = async (user_id, event_id) => {
-
 const checkFavouritesDb = async (user_id, event_id) => {
     const [rows] = await db.query(
         'SELECT * FROM favourites WHERE user_id = ? AND event_id = ?',
@@ -42,5 +39,4 @@ const deleteFavouritesDb = async (user_id, event_id) => {
     return result;
 };
 
-export { postFavouritesDb, getFavouritesCheckDb, getUserFavouritesDb, deleteFavouritesDb};
-export { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb };
+export { postFavouritesDb, checkFavouritesDb, getUserFavouritesDb, deleteFavouritesDb };
