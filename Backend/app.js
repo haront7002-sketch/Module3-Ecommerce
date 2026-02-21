@@ -1,9 +1,11 @@
 import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
-import {cartRoutes} from './Routes/cartRoute.js';
-import {favouriteRoutes} from './Routes/favouriteRoute.js';
+import {cartRoutes} from './Routes/cartRoutes.js';
+import {favouriteRoutes} from './Routes/favouriteRoutes.js';
 import authRoutes from './Routes/authRoutes.js';
+import { orderRoutes } from './Routes/orderRoutes.js';
+import { ticketRoutes } from './Routes/ticketRoutes.js';
 
 dotenv.config();
 
@@ -19,6 +21,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', favouriteRoutes);
 app.use('/api', cartRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api', orderRoutes);
+app.use('/api', ticketRoutes);
 
 
 // Test route
