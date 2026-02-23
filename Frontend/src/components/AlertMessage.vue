@@ -1,4 +1,4 @@
-<!-- <template>
+<template>
   <p v-if="message" :style="{ color: type === 'success' ? 'green' : 'red' }">
     {{ message }}
   </p>
@@ -9,5 +9,5 @@ defineProps({
   message: String,
   type: String,
 });
-</script> -->
+</script>
 

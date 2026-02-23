@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Swipe from "@/views/Swipe.vue";
+import Login from "@/views/Login.vue";
 
-// import Login from "@/views/Login.vue";
 // import Register from "@/views/Register.vue";
 // import Preferences from "@/views/Preferences.vue";
 // import Profile from "@/views/Profile.vue";
@@ -14,11 +14,11 @@ const router = createRouter({
       name: "home",
       component: Swipe,
     },
-  //   {
-  //     path: "/login",
-  //     name: "login",
-  //     component: Login,
-  //   },
+    {
+      path: "/login",
+      name: "login",
+      component: Login,
+    },
   //   {
   //     path: "/register",
   //     name: "register",

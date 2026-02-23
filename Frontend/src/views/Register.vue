@@ -6,8 +6,13 @@
 
     <form @submit.prevent="handleRegister">
       <div>
-        <label>Name</label>
-        <input v-model="name" required />
+        <label>First Name</label>
+        <input v-model="firstName" required />
+      </div>
+
+      <div>
+        <label>Surname</label>
+        <input v-model="surname" required />
       </div>
 
       <div>
@@ -53,7 +58,8 @@ import AlertMessage from "../components/AlertMessage.vue";
 
 const router = useRouter();
 
-const name = ref("");
+const firstName = ref("");
+const surname = ref("");
 const email = ref("");
 const country = ref("");
 const zip = ref("");
@@ -80,10 +86,11 @@ async function handleRegister() {
 
   try {
     const res = await api.register({
-      name: name.value,
+      user_name: firstName.value.trim(),
+      user_surname: surname.value.trim(),
       email: email.value,
       country: country.value,
-      zip: zip.value,
+      zip_code: zip.value,
       password: password.value,
     });
 
