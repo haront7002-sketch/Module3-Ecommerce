@@ -6,9 +6,8 @@
 # =====================
 # Environment variables
 # =====================
-**/.env
-**/.env.*
-
+.env
+.env.*
 !.env.example
 
 # =====================
@@ -16,6 +15,7 @@
 # =====================
 dist/
 dist-ssr/
+.vite/
 
 # =====================
 # Logs
@@ -25,6 +25,7 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+lerna-debug.log*
 
 # =====================
 # Coverage / tests
@@ -58,4 +59,3 @@ Thumbs.db
 # =====================
 .eslintcache
 *.tsbuildinfo
-.vite/
