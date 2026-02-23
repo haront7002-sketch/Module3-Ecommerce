@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
-import './views/Swipe.vue'  
+import Swipe from './views/Swipe.vue'
 </script>
 
 <template>

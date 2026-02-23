@@ -1,25 +1,41 @@
-const bcrypt = require('bcrypt');
-
-const users = [];
+import db from '../Config/database.js';
 
 const User = {
 
-    create: async ({ email, password }) => {
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newUser = {
-            id: users.length + 1,
+    // Create user
+    create: async (userData) => {
+        const {
+            user_name,
+            user_surname,
             email,
-            password: hashedPassword
-        };
+            password,
+            country,
+            zip_code
+        } = userData;
 
-        users.push(newUser);
-        return newUser;
+        const [result] = await db.execute(
+            `INSERT INTO users 
+            (user_name, user_surname, email, password, country, zip_code, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+            [user_name, user_surname, email, password, country, zip_code]
+        );
+
+        return {
+             user_id: result.insertId,
+            email
+        };
     },
 
+    // Find user by email
     findByEmail: async (email) => {
-        return users.find(u => u.email === email);
+        const [rows] = await db.execute(
+            `SELECT * FROM users WHERE email = ?`,
+            [email]
+        );
+
+        return rows[0];
     }
+
 };
 
-module.exports = User;
+export default User;
