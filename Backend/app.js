@@ -6,6 +6,7 @@ import {favouriteRoutes} from './Routes/favouriteRoutes.js';
 import authRoutes from './Routes/authRoutes.js';
 import { orderRoutes } from './Routes/orderRoutes.js';
 import { ticketRoutes } from './Routes/ticketRoutes.js';
+import { eventRoutes } from './Routes/eventRoute.js'
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use('/api', cartRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', ticketRoutes);
+app.use('/api', eventRoutes.js); 
 
 
 // Test route
