@@ -5,19 +5,12 @@ import Swipe from './views/Swipe.vue'
 
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
     <div class="wrapper">
-      <Swipe />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
+    
     </div>
   </header>
 
-  <RouterView />
+  <RouterView />  <!-- This will render your Swipe component when route matches -->
 </template>
 
 <style scoped>
