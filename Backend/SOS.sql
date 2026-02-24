@@ -1,6 +1,6 @@
- -- MySQL dump 10.13  Distrib 8.0.44, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.44, for Win64 (x86_64)
 --
--- Host: localhost    Database: south_of_somewhere
+-- Host: localhost    Database: s_o_s
 -- ------------------------------------------------------
 -- Server version	8.0.44
 
@@ -16,27 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `cart`
---
-
-DROP TABLE IF EXISTS `cart`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `cart` (
-  `cart_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `event_id` int NOT NULL,
-  `quantity` int NOT NULL,
-  `added_at` timestamp NOT NULL,
-  PRIMARY KEY (`cart_id`),
-  KEY `uid_fk_idx` (`user_id`),
-  KEY `eid_fk_idx` (`event_id`),
-  CONSTRAINT `eid_fk` FOREIGN KEY (`event_id`) REFERENCES `events` (`event_id`),
-  CONSTRAINT `uid_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `cart`
 --
 
@@ -46,26 +25,12 @@ LOCK TABLES `cart` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `categories`
---
-
-DROP TABLE IF EXISTS `categories`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `categories` (
-  `category_id` int NOT NULL,
-  `category_name` varchar(45) NOT NULL,
-  PRIMARY KEY (`category_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `categories`
 --
 
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
-INSERT INTO `categories` VALUES (1,'Social Vibes'),(2,'Intellectual & Skills'),(3,'Arts & Culture'),(4,'Wellness & Body'),(5,'Creative Making'),(6,'Community & Cause'),(7,'Professional Networking'),(8,'Life Stages & Niches'),(9,'Seasonal Annual'),(10,'Weird & Hyperlocal'),(11,'Food & Drink'),(12,'Music & Nightlife'),(13,'Sports & Adventure'),(14,'Family & Kids'),(15,'Spirituality & Mindfulness');
+INSERT INTO `categories` VALUES (1,'Social Vibes'),(2,'Intellectual & Skills'),(3,'Arts & Culture'),(4,'Wellness & Body'),(5,'Creative, Making'),(6,'Community & Cause'),(7,'Professional Networking'),(8,'Life Stages & Niches'),(9,'Seasonal, Annual'),(10,'Weird & Hyperlocal'),(11,'Food & Drink'),(12,'Music & Nightlife'),(13,'Sports & Adventure'),(14,'Family & Kids'),(15,'Spirituality & Mindfulness');
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -104,26 +69,6 @@ INSERT INTO `events` (`event_id`,`event_title`,`description`,`date`,`time`,`loca
 UNLOCK TABLES;
 
 --
--- Table structure for table `favourites`
---
-
-DROP TABLE IF EXISTS `favourites`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `favourites` (
-  `favourites_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `event_id` int NOT NULL,
-  `created_at` int NOT NULL,
-  PRIMARY KEY (`favourites_id`),
-  KEY `uid_f_idx` (`user_id`),
-  KEY `eid_f_idx` (`event_id`),
-  CONSTRAINT `eid_f` FOREIGN KEY (`event_id`) REFERENCES `events` (`event_id`),
-  CONSTRAINT `uid_f` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `favourites`
 --
 
@@ -131,27 +76,6 @@ LOCK TABLES `favourites` WRITE;
 /*!40000 ALTER TABLE `favourites` DISABLE KEYS */;
 /*!40000 ALTER TABLE `favourites` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `order_items`
---
-
-DROP TABLE IF EXISTS `order_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `order_items` (
-  `items_id` int NOT NULL AUTO_INCREMENT,
-  `order_id` int NOT NULL,
-  `event_id` int NOT NULL,
-  `quantity` int NOT NULL,
-  `price` decimal(10,2) NOT NULL,
-  PRIMARY KEY (`items_id`),
-  KEY `eid_idx` (`event_id`),
-  KEY `oid_idx` (`order_id`),
-  CONSTRAINT `eid` FOREIGN KEY (`event_id`) REFERENCES `events` (`event_id`),
-  CONSTRAINT `oid` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `order_items`
@@ -192,24 +116,6 @@ LOCK TABLES `orders` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `user_categories`
---
-
-DROP TABLE IF EXISTS `user_categories`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `user_categories` (
-  `user_category_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `category_id` int NOT NULL,
-  PRIMARY KEY (`user_category_id`),
-  KEY `uid_idx` (`user_id`),
-  CONSTRAINT `cid` FOREIGN KEY (`user_category_id`) REFERENCES `categories` (`category_id`),
-  CONSTRAINT `uid` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `user_categories`
 --
 
@@ -217,26 +123,6 @@ LOCK TABLES `user_categories` WRITE;
 /*!40000 ALTER TABLE `user_categories` DISABLE KEYS */;
 /*!40000 ALTER TABLE `user_categories` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `users`
---
-
-DROP TABLE IF EXISTS `users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `users` (
-  `user_id` int NOT NULL AUTO_INCREMENT,
-  `user_name` varchar(45) NOT NULL,
-  `user_surname` varchar(45) NOT NULL,
-  `email` varchar(45) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `country` varchar(45) NOT NULL,
-  `zip_code` varchar(45) NOT NULL,
-  `created_at` timestamp NOT NULL,
-  PRIMARY KEY (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `users`
