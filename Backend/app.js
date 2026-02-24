@@ -6,7 +6,8 @@ import {favouriteRoutes} from './Routes/favouriteRoutes.js';
 import authRoutes from './Routes/authRoutes.js';
 import { orderRoutes } from './Routes/orderRoutes.js';
 import { ticketRoutes } from './Routes/ticketRoutes.js';
-import { eventRoutes } from './Routes/eventRoute.js'
+import eventRoutes from './Routes/eventRoute.js';
+import userRoutes from './Routes/userRoutes.js';
 
 dotenv.config();
 
@@ -17,14 +18,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+  
 // Routes
 app.use('/api', favouriteRoutes);
 app.use('/api', cartRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', ticketRoutes);
-app.use('/api', eventRoutes.js); 
+app.use('/api', eventRoutes);
+app.use('/api', userRoutes);
 
 
 // Test route

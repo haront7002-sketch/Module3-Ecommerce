@@ -169,7 +169,7 @@ DROP TABLE IF EXISTS `orders`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `orders` (
-  `order_id` int NOT NULL,
+  `order_id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
   `total` decimal(10,2) NOT NULL,
   `status` varchar(45) NOT NULL,
@@ -203,7 +203,7 @@ CREATE TABLE `user_categories` (
   `category_id` int NOT NULL,
   PRIMARY KEY (`user_category_id`),
   KEY `uid_idx` (`user_id`),
-  CONSTRAINT `cid` FOREIGN KEY (`user_category_id`) REFERENCES `categories` (`category_id`),
+  CONSTRAINT `cid` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`),
   CONSTRAINT `uid` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

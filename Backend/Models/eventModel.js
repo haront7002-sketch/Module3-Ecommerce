@@ -7,8 +7,8 @@ const getEvents = async (category) => {
     const params = [];
 
     if (category) {
-        query += " WHERE category = ?";
-        params.push(category);
+        query += " WHERE category_id = ?";
+        params.push(Number(category));
     }
 
     query += " ORDER BY date ASC";

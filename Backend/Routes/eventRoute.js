@@ -1,10 +1,10 @@
 import express from "express";
-import { getEvents, getEventById } from "../Controllers/eventController.js";
+import { getEventsCon, getEventByIdCon } from "../Controllers/eventController.js";
 
 const router = express.Router();
 
 // Public event endpoints
-router.get("/events", getEvents);
-router.get("/events/:id", getEventById);
+router.get("/events", getEventsCon);
+router.get("/events/:id", getEventByIdCon);
 
 export default router;

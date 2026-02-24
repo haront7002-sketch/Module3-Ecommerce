@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../Models/userModel.js';
 
+// ------------------ REGISTER ------------------
 const register = async (req, res) => {
     try {
         const { user_name, user_surname, email, password, country, zip_code } = req.body;
@@ -12,7 +13,7 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-
+ 
         const user = await User.create({
             user_name,
             user_surname,
@@ -36,6 +37,7 @@ const register = async (req, res) => {
     }
 };
 
+// ------------------ LOGIN ------------------
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -64,4 +66,55 @@ const login = async (req, res) => {
     }
 };
 
-export { register, login };
+// ------------------ GET USER PROFILE ------------------
+const getUserProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.user_id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// ------------------ UPDATE USER COUNTRY / ZIP ------------------
+const updateUser = async (req, res) => {
+    try {
+        const { country, zip_code } = req.body;
+
+        const updatedUser = await User.updateUser(req.user.user_id, { country, zip_code });
+
+        res.json({ message: "User updated", updatedUser });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// ------------------ UPDATE USER PREFERENCES ------------------
+const updatePreferences = async (req, res) => {
+    try {
+        const { preferences } = req.body;
+
+        const updatedPrefs = await User.updatePreferences(req.user.user_id, preferences);
+
+        res.json({ message: "Preferences updated", updatedPrefs });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// ------------------ EXPORT CONTROLLERS ------------------
+export {
+    register,
+    login,
+    getUserProfile,
+    updateUser,
+    updatePreferences
+};
