@@ -22,7 +22,19 @@ const logout = () => {
       <!-- Navigation menu - only show when authenticated and preferences completed -->
       <nav v-if="isAuthenticated && hasPreferences" class="main-nav">
         <router-link to="/" class="nav-link" :class="{ active: route.path === '/' }">
-          <i class="uil uil-home"></i> Home
+          <i class="uil uil-estate"></i> Home
+        </router-link>
+        <router-link to="/explore" class="nav-link" :class="{ active: route.path === '/explore' }">
+          <i class="uil uil-calendar-alt"></i> Explore
+        </router-link>
+        <router-link to="/map" class="nav-link" :class="{ active: route.path === '/map' }">
+          <i class="uil uil-map-marker"></i> Map
+        </router-link>
+        <router-link to="/favourites" class="nav-link" :class="{ active: route.path === '/favourites' }">
+          <i class="uil uil-heart"></i> Favourites
+        </router-link>
+        <router-link to="/payments" class="nav-link" :class="{ active: route.path === '/payments' }">
+          <i class="uil uil-credit-card"></i> Payment
         </router-link>
         <router-link to="/profile" class="nav-link" :class="{ active: route.path === '/profile' }">
           <i class="uil uil-user"></i> Profile
@@ -55,35 +67,36 @@ header {
 
 .main-nav {
   display: flex;
-  gap: 20px;
+  gap: 10px;
   justify-content: center;
   align-items: center;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   border-radius: 50px;
   margin-bottom: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .nav-link {
   color: white;
   text-decoration: none;
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 30px;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 500;
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .nav-link i {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .nav-link:hover {
@@ -92,27 +105,27 @@ header {
 }
 
 .nav-link.active {
-  background: linear-gradient(45deg, #EEAECA, #AEE994);
-  color: #1f2029;
+  background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+  color: #2d3436;
   box-shadow: 0 5px 15px rgba(174, 233, 148, 0.3);
 }
 
 .logout-btn {
-  background: rgba(255, 99, 99, 0.2);
-  color: #ff6b6b;
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  background: rgba(255, 99, 99, 0.15);
+  color: #e6e6e6;
+  border: 1px solid rgba(255, 107, 107, 0.2);
 }
 
 .logout-btn:hover {
-  background: rgba(255, 99, 99, 0.3);
-  color: #ff5252;
+  background: rgba(255, 99, 99, 0.25);
+  color: #ff0000;
 }
 
 @media (max-width: 768px) {
   .main-nav {
     flex-direction: column;
     border-radius: 20px;
-    padding: 10px;
+    padding: 15px;
   }
   
   .nav-link {

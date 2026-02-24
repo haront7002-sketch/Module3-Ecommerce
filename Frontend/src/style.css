@@ -10,7 +10,7 @@ body {
     font-size: 15px;
     line-height: 1.7;
     color: #ffffff;
-    background: linear-gradient(135deg, #EEAECA 0%, #ffc9e0 50%, #AEE994 100%);
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
     overflow-x: hidden;
     min-height: 100vh;
 }
@@ -130,8 +130,8 @@ h6 span {
 }
 
 .btn:hover {  
-    background: linear-gradient(45deg, #AEE994, #9fd88f);
-    color: #EEAECA;
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+    color: #ffffff;
     box-shadow: 0 15px 30px rgba(174, 233, 148, 0.5);
     transform: translateY(-3px);
 }
@@ -211,7 +211,7 @@ h6 span {
     padding: 0;
     margin: 20px auto;
     cursor: pointer;
-    background: linear-gradient(90deg, #EEAECA, #AEE994);
+    background: linear-gradient(90deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.3);
 }
@@ -224,7 +224,7 @@ h6 span {
     height: 40px;
     border-radius: 50%;
     color: #ffffff;
-    background: linear-gradient(135deg, #AEE994, #EEAECA);
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
     font-family: 'unicons';
     content: '\eb4f';
     z-index: 20;
@@ -240,7 +240,7 @@ h6 span {
 
 .checkbox:checked + label:before {
     transform: translateX(44px) rotate(-360deg);
-    background: linear-gradient(135deg, #EEAECA, #AEE994);
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
 }
 
 /* Card 3D Styles */
@@ -322,7 +322,7 @@ h6 span {
     left: 0;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, #EEAECA, #AEE994);
+    background: linear-gradient(90deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
     transform: scaleX(0);
     transition: transform 300ms ease;
 }
@@ -360,12 +360,12 @@ h6 span {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #EEAECA, #AEE994);
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #AEE994, #EEAECA);
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
 }
 
 /* Glass morphism effect for cards */
