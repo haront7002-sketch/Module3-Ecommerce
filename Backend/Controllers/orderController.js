@@ -1,4 +1,4 @@
-import orderModel from '../Models/orderModel.js';
+import { postOrderDb, postOrderItemsDb, getOrderDb, getUserOrdersDb, patchOrderStatusDb, postCheckoutOrderDb } from '../Models/orderModel.js';
 
 // SECTION: Checkout/place order
 const postCheckoutCon = async (req, res) => {
@@ -12,7 +12,7 @@ const postCheckoutCon = async (req, res) => {
             });
         }
 
-        const result = await orderModel.postCheckoutOrderDb(user_id, payment_method, status);
+        const result = await postCheckoutOrderDb(user_id, payment_method, status);
 
         return res.status(201).json({
             success: true,
@@ -29,11 +29,76 @@ const postCheckoutCon = async (req, res) => {
     }
 };
 
+// SECTION: Create order (without items)
+const postOrderCon = async (req, res) => {
+    try {
+        const { user_id, total, payment_method, status = 'pending' } = req.body;
+
+        if (!user_id || total === undefined || !payment_method) {
+            return res.status(400).json({
+                success: false,
+                message: 'user_id, total, and payment_method are required'
+            });
+        }
+
+        const order_id = await postOrderDb(user_id, total, payment_method, status);
+
+        return res.status(201).json({
+            success: true,
+            message: 'Order created',
+            order_id
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error creating order',
+            error: error.message
+        });
+    }
+};
+
+// SECTION: Create order items
+const postOrderItemsCon = async (req, res) => {
+    try {
+        const { order_id, items } = req.body;
+
+        if (!order_id || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'order_id and items array are required'
+            });
+        }
+
+        for (const item of items) {
+            if (!item.event_id || item.quantity === undefined || item.price === undefined) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Each item must include event_id, quantity, and price'
+                });
+            }
+        }
+
+        const result = await postOrderItemsDb(order_id, items);
+
+        return res.status(201).json({
+            success: true,
+            message: 'Order items created',
+            affected_rows: result.affectedRows
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error creating order items',
+            error: error.message
+        });
+    }
+};
+
 // SECTION: Read one order
-const getOrderByIdCon = async (req, res) => {
+const getOrderCon = async (req, res) => {
     try {
         const { order_id } = req.params;
-        const order = await orderModel.getOrderByIdDb(order_id);
+        const order = await getOrderByIdDb(order_id);
 
         if (!order) {
             return res.status(404).json({
@@ -59,7 +124,7 @@ const getOrderByIdCon = async (req, res) => {
 const getUserOrdersCon = async (req, res) => {
     try {
         const { user_id } = req.params;
-        const orders = await orderModel.getUserOrdersDb(user_id);
+        const orders = await getUserOrdersDb(user_id);
 
         return res.status(200).json({
             success: true,
@@ -87,7 +152,7 @@ const patchOrderStatusCon = async (req, res) => {
             });
         }
 
-        const result = await orderModel.patchOrderStatusDb(order_id, status);
+        const result = await patchOrderStatusDb(order_id, status);
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 success: false,
@@ -108,4 +173,4 @@ const patchOrderStatusCon = async (req, res) => {
     }
 };
 
-export { postCheckoutCon, getOrderByIdCon, getUserOrdersCon, patchOrderStatusCon };
+export { postCheckoutCon, postOrderCon, postOrderItemsCon, getOrderCon, getUserOrdersCon, patchOrderStatusCon };

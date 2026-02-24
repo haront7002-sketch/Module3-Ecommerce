@@ -35,12 +35,36 @@ INSERT INTO `categories` VALUES (1,'Social Vibes'),(2,'Intellectual & Skills'),(
 UNLOCK TABLES;
 
 --
+-- Table structure for table `events`
+--
+
+DROP TABLE IF EXISTS `events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `events` (
+  `event_id` int NOT NULL AUTO_INCREMENT,
+  `event_title` varchar(100) NOT NULL,
+  `description` longtext NOT NULL,
+  `date` date NOT NULL,
+  `time` time NOT NULL,
+  `location` varchar(100) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `image_url` varchar(100) DEFAULT NULL,
+  `category_id` int NOT NULL,
+  `created_at` timestamp NOT NULL,
+  PRIMARY KEY (`event_id`),
+  KEY `cid_idx` (`category_id`),
+  CONSTRAINT `cid_fk` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=76 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Dumping data for table `events`
 --
 
 LOCK TABLES `events` WRITE;
 /*!40000 ALTER TABLE `events` DISABLE KEYS */;
-INSERT INTO `events` VALUES (1,'Silo District Sunset Social','A casual evening of music, street food, and networking with young professionals.','2026-03-15','17:00:00','Silo District, V&A Waterfront, Cape Town',150.00,NULL,1,'2026-02-24 09:12:43'),(2,'AI & Future Tech Workshop','Hands-on workshop exploring AI tools for business and creativity.','2026-03-22','10:00:00','Workshop17, Kloof Street, Cape Town',350.00,NULL,2,'2026-02-24 09:12:43'),(3,'First Thursdays – City Walk','Monthly art walk with galleries open late, live music, and street performances.','2026-03-05','17:00:00','Bree Street / Church Street, Cape Town',0.00,NULL,3,'2026-02-24 09:12:43'),(4,'Sunrise Yoga at Clifton','Start your day with beachfront yoga, followed by healthy smoothies.','2026-03-08','06:30:00','Clifton 4th Beach, Cape Town',120.00,NULL,4,'2026-02-24 09:12:43'),(5,'Pottery & Pizza Night','Paint your own ceramics while enjoying wood-fired pizza and wine.','2026-03-12','18:00:00','Clay Cafe, Hout Bay',280.00,NULL,5,'2026-02-24 09:12:43'),(6,'Beach Clean-Up & Braai','Help clean the beach, then join a community braai afterwards.','2026-03-21','09:00:00','Muizenberg Beach',0.00,NULL,6,'2026-02-24 09:12:43'),(7,'Creative Mornings Cape Town','Monthly breakfast lecture for creatives — topic: \"Fearless.\"','2026-03-27','08:30:00','The Galileo, V&A Waterfront',0.00,NULL,7,'2026-02-24 09:12:43'),(8,'New Parents Meet-Up','A safe space for new parents to connect, share, and relax with their babies.','2026-03-10','10:00:00','The Little Sunshine Centre, Observatory',0.00,NULL,8,'2026-02-24 09:12:43'),(9,'Kirstenbosch Summer Sunset Concert','Outdoor concert featuring top local artists — bring a picnic and blanket.','2026-03-14','17:30:00','Kirstenbosch Botanical Gardens',220.00,NULL,9,'2026-02-24 09:12:43'),(10,'The Great SA Arm Wrestling Championship','Exactly what it sounds like. Arm wrestling. Local legends. Weird prizes.','2026-03-20','19:00:00','Armchair Theatre, Obs',80.00,NULL,10,'2026-02-24 09:12:43'),(11,'Cape Town Comedy Night','Line-up of SA\'s funniest comedians — 18+ show.','2026-03-19','20:00:00','Cape Town Comedy Club, V&A Waterfront',150.00,NULL,3,'2026-02-24 09:12:43'),(12,'Forest Bathing & Mindfulness Walk','Guided slow walk through the forest to reduce stress and reconnect with nature.','2026-03-13','09:00:00','Newlands Forest',180.00,NULL,4,'2026-02-24 09:12:43'),(13,'First Rays – Silent Disco at Sunrise','Watch the sunrise over Cape Town while dancing to your own silent disco channel.','2026-03-28','06:00:00','Signal Hill, Cape Town',200.00,NULL,1,'2026-02-24 09:12:43'),(14,'Macramé Plant Hanger Workshop','Learn to make your own macramé plant hanger — all materials included, drinks for sale.','2026-03-18','18:30:00','The Woodstock Foundry',320.00,NULL,5,'2026-02-24 09:12:43'),(15,'Tech Winter Social','Informal networking for tech folks — first drink included.','2026-03-26','18:00:00','Grub & Vine, Bree Street',100.00,NULL,7,'2026-02-24 09:12:43');
+INSERT INTO `events` (`event_id`,`event_title`,`description`,`date`,`time`,`location`,`price`,`image_url`,`category_id`,`created_at`) VALUES (1,'Silo District Sunset Social','A casual evening of music, street food, and networking with young professionals.','2026-03-15','17:00:00','Silo District, V&A Waterfront, Cape Town',150.00,NULL,1,'2026-02-17 07:53:19'),(2,'AI & Future Tech Workshop','Hands-on workshop exploring AI tools for business and creativity.','2026-03-22','10:00:00','Workshop17, Kloof Street, Cape Town',350.00,NULL,2,'2026-02-17 07:53:19'),(3,'First Thursdays – City Walk','Monthly art walk with galleries open late, live music, and street performances.','2026-03-05','17:00:00','Bree Street / Church Street, Cape Town',0.00,NULL,3,'2026-02-17 07:53:19'),(4,'Sunrise Yoga at Clifton','Start your day with beachfront yoga, followed by healthy smoothies.','2026-03-08','06:30:00','Clifton 4th Beach, Cape Town',120.00,NULL,4,'2026-02-17 07:53:19'),(5,'Pottery & Pizza Night','Paint your own ceramics while enjoying wood-fired pizza and wine.','2026-03-12','18:00:00','Clay Cafe, Hout Bay',280.00,NULL,5,'2026-02-17 07:53:19'),(6,'Beach Clean-Up & Braai','Help clean the beach, then join a community braai afterwards.','2026-03-21','09:00:00','Muizenberg Beach',0.00,NULL,6,'2026-02-17 07:53:19'),(7,'Creative Mornings Cape Town','Monthly breakfast lecture for creatives — topic: "Fearless."','2026-03-27','08:30:00','The Galileo, V&A Waterfront',0.00,NULL,7,'2026-02-17 07:53:19'),(8,'New Parents Meet-Up','A safe space for new parents to connect, share, and relax with their babies.','2026-03-10','10:00:00','The Little Sunshine Centre, Observatory',0.00,NULL,8,'2026-02-17 07:53:19'),(9,'Kirstenbosch Summer Sunset Concert','Outdoor concert featuring top local artists — bring a picnic and blanket.','2026-03-14','17:30:00','Kirstenbosch Botanical Gardens',220.00,NULL,9,'2026-02-17 07:53:19'),(10,'The Great SA Arm Wrestling Championship','Exactly what it sounds like. Arm wrestling. Local legends. Weird prizes.','2026-03-20','19:00:00','Armchair Theatre, Obs',80.00,NULL,10,'2026-02-17 07:53:19'),(11,'Cape Town Comedy Night','Line-up of SA\'s funniest comedians — 18+ show.','2026-03-19','20:00:00','Cape Town Comedy Club, V&A Waterfront',150.00,NULL,3,'2026-02-17 07:53:19'),(12,'Forest Bathing & Mindfulness Walk','Guided slow walk through the forest to reduce stress and reconnect with nature.','2026-03-13','09:00:00','Newlands Forest',180.00,NULL,4,'2026-02-17 07:53:19'),(13,'First Rays – Silent Disco at Sunrise','Watch the sunrise over Cape Town while dancing to your own silent disco channel.','2026-03-28','06:00:00','Signal Hill, Cape Town',200.00,NULL,1,'2026-02-17 07:53:19'),(14,'Macramé Plant Hanger Workshop','Learn to make your own macramé plant hanger — all materials included, drinks for sale.','2026-03-18','18:30:00','The Woodstock Foundry',320.00,NULL,5,'2026-02-17 07:53:19'),(15,'Tech Winter Social','Informal networking for tech folks — first drink included.','2026-03-26','18:00:00','Grub & Vine, Bree Street',100.00,NULL,7,'2026-02-17 07:53:19');
 /*!40000 ALTER TABLE `events` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -61,6 +85,26 @@ LOCK TABLES `order_items` WRITE;
 /*!40000 ALTER TABLE `order_items` DISABLE KEYS */;
 /*!40000 ALTER TABLE `order_items` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `orders`
+--
+
+DROP TABLE IF EXISTS `orders`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `orders` (
+  `order_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `total` decimal(10,2) NOT NULL,
+  `status` varchar(45) NOT NULL,
+  `payment_method` varchar(45) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  PRIMARY KEY (`order_id`),
+  KEY `usid_idx` (`user_id`),
+  CONSTRAINT `usid` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `orders`
@@ -98,4 +142,8 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-24 11:22:32
+-- Dump completed on 2026-02-17 12:59:58
+
+
+
+

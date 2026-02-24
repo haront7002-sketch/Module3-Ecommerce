@@ -21,7 +21,7 @@ const checkFavouritesDb = async (user_id, event_id) => {
 // Get all favourites for a user
 const getUserFavouritesDb = async (user_id) => {
     const [rows] = await db.query(`
-        SELECT f.*, e.event_title, e.description, e.date, e.location, e.price, e.image_url 
+        SELECT f.*, e.event_title, e.description, e.date, e.time, e.location, e.price, e.image_url 
         FROM favourites f
         JOIN events e ON f.event_id = e.event_id
         WHERE f.user_id = ?

@@ -25,7 +25,7 @@ const postOrderItemsDb = async (order_id, cart_items, query_db = db) => {
 };
 
 // SECTION: Read single order with items
-const getOrderByIdDb = async (order_id, query_db = db) => {
+const getOrderDb = async (order_id, query_db = db) => {
     const [rows] = await query_db.query(`
         SELECT o.*,
                JSON_ARRAYAGG(
@@ -117,11 +117,4 @@ const postCheckoutOrderDb = async (user_id, payment_method, status = 'pending') 
     }
 };
 
-export default {
-    postOrderDb,
-    postOrderItemsDb,
-    getOrderByIdDb,
-    getUserOrdersDb,
-    patchOrderStatusDb,
-    postCheckoutOrderDb
-};
+export { postOrderDb, postOrderItemsDb, getOrderDb, getUserOrdersDb, patchOrderStatusDb, postCheckoutOrderDb };
