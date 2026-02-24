@@ -3,7 +3,7 @@ import { db } from '../Config/database.js';
 // Get user's cart items
 const getCartDb = async (user_id) => {
     const [rows] = await db.query(`
-        SELECT c.*, e.event_title, e.description, e.date, e.location, e.price, e.image_url 
+        SELECT c.*, e.event_title, e.description, e.date, e.time, e.location, e.price, e.image_url 
         FROM cart c
         JOIN events e ON c.event_id = e.event_id
         WHERE c.user_id = ?

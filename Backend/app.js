@@ -6,6 +6,8 @@ import {favouriteRoutes} from './Routes/favouriteRoutes.js';
 import authRoutes from './Routes/authRoutes.js';
 import { orderRoutes } from './Routes/orderRoutes.js';
 import { ticketRoutes } from './Routes/ticketRoutes.js';
+import { categoryRoutes } from './Routes/categoryRoutes.js';
+import { eventRoutes } from './Routes/eventRoutes.js';
 
 dotenv.config();
 
@@ -23,6 +25,8 @@ app.use('/api', cartRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', ticketRoutes);
+app.use('/api', categoryRoutes);
+app.use('/api', eventRoutes);
 
 
 // Test route
@@ -32,6 +36,6 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(PORT, () =>{
-    console.log("http://localhost:3000");
-    console.log(`Server running on port ${PORT}`);
+
+    console.log(`Server running on http://localhost:${PORT}`);
 });

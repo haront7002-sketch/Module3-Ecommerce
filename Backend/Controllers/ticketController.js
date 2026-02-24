@@ -1,8 +1,4 @@
-import {
-    buildTicketsFromOrderRows,
-    getOrderTicketRowsDb,
-    patchOrderTicketsIssuedDb
-} from '../Models/ticketModel.js';
+import { buildTicketsFromOrderRows, getOrderTicketRowsDb, patchOrderTicketsIssuedDb } from '../Models/ticketModel.js';
 
 // SECTION: Issue tickets for an order and update order status
 const postIssueTicketsCon = async (req, res) => {
