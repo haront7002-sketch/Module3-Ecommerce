@@ -1,6 +1,5 @@
 <template>
   <div class="swipe-container">
-    <h1>Swipeable Cards</h1>
     
     <div class="card-container">
       <Card
@@ -110,7 +109,7 @@ export default {
 
 .swipe-container {
   font-family: 'Arial', sans-serif;
-  background: linear-gradient(135deg, #ffc3a0 0%, #ffafbd 100%);
+  background: linear-gradient(101deg, #ec4949 2 0%, #69d939 80%);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -204,5 +203,44 @@ h1 {
 
 .reset-btn:hover {
   transform: scale(1.05);
+}
+
+.card-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  height: 500px;
+  margin-bottom: 80px;  /* Increased from 40px to give more space */
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 20px;     /* Add margin-top for extra spacing */
+  position: relative;    /* Ensure it stays above cards */
+  z-index: 200;         /* Higher z-index than cards */
+}
+
+/* Add this to ensure cards don't overlap buttons */
+.no-cards {
+  margin-top: 20px;
+  position: relative;
+  z-index: 200;
+}
+
+/* Fix card positioning */
+.card {
+  position: center;
+  width: 80%;
+  height: 100%;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  cursor: grab;
+  user-select: none;
+  top: 0;
+  left: 0;
+  pointer-events: auto; /* Ensure cards only receive events within their container */
 }
 </style>
