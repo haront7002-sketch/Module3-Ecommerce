@@ -11,10 +11,10 @@ import {
 const getEventsCon = async (req, res) => {
     try {
         const events = await getEventsDb();
-        res.status(200).json({ success: true, events });
+        res.status(200).json({ events });
     } catch (error) {
         console.error('Error fetching events:', error);
-        res.status(500).json({ success: false, message: 'Error fetching events' });
+        res.status(500).json({ message: error });
     }
 };
 
@@ -25,13 +25,13 @@ const getEventByIdCon = async (req, res) => {
         const event = await getEventByIdDb(event_id);
 
         if (!event) {
-            return res.status(404).json({ success: false, message: 'Event not found' });
+            return res.status(404).json({ message: 'Event not found' });
         }
 
-        res.status(200).json({ success: true, event });
+        res.status(200).json({ event });
     } catch (error) {
         console.error('Error fetching event:', error);
-        res.status(500).json({ success: false, message: 'Error fetching event' });
+        res.status(500).json({ message: 'Error fetching event' });
     }
 };
 
@@ -40,10 +40,10 @@ const getEventsByCategoryCon = async (req, res) => {
     try {
         const { category_id } = req.params;
         const events = await getEventsByCategoryDb(category_id);
-        res.status(200).json({ success: true, events });
+        res.status(200).json({ events });
     } catch (error) {
         console.error('Error fetching events by category:', error);
-        res.status(500).json({ success: false, message: 'Error fetching events by category' });
+        res.status(500).json({ message: 'Error fetching events by category' });
     }
 };
 
@@ -63,7 +63,6 @@ const postEventCon = async (req, res) => {
 
         if (!event_title || !description || !date || !time || !location || price === undefined || !category_id) {
             return res.status(400).json({
-                success: false,
                 message: 'event_title, description, date, time, location, price, and category_id are required'
             });
         }
@@ -80,13 +79,12 @@ const postEventCon = async (req, res) => {
         });
 
         res.status(201).json({
-            success: true,
             message: 'Event created',
             event_id: result.insertId
         });
     } catch (error) {
         console.error('Error creating event:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -99,13 +97,13 @@ const patchEventCon = async (req, res) => {
         const result = await patchEventDb(event_id, updates);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Event not found or no changes' });
+            return res.status(404).json({ message: 'Event not found or no changes' });
         }
 
-        res.status(200).json({ success: true, message: 'Event updated' });
+        res.status(200).json({ message: 'Event updated' });
     } catch (error) {
         console.error('Error updating event:', error);
-        res.status(500).json({ success: false, message: 'Error updating event' });
+        res.status(500).json({ message: 'Error updating event' });
     }
 };
 
@@ -117,13 +115,13 @@ const deleteEventCon = async (req, res) => {
         const result = await deleteEventDb(event_id);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Event not found' });
+            return res.status(404).json({ message: 'Event not found' });
         }
 
-        res.status(200).json({ success: true, message: 'Event deleted' });
+        res.status(200).json({ message: 'Event deleted' });
     } catch (error) {
         console.error('Error deleting event:', error);
-        res.status(500).json({ success: false, message: 'Error deleting event' });
+        res.status(500).json({ message: 'Error deleting event' });
     }
 };
 

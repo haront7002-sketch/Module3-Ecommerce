@@ -5,10 +5,10 @@ import { getCategoriesDb, getCategoryDb, postCategoryDb, patchCategoryDb, delete
 const getCategoriesCon = async (req, res) => {
     try {
         const categories = await getCategoriesDb();
-        res.status(200).json({ success: true, categories });
+        res.status(200).json({ categories });
     } catch (error) {
         console.error('Error fetching categories:', error);
-        res.status(500).json({ success: false, message: 'Error fetching categories' });
+        res.status(500).json({ message: 'Error fetching categories' });
     }
 };
 
@@ -19,13 +19,13 @@ const getCategoryCon = async (req, res) => {
         const category = await getCategoryDb(category_id);
 
         if (!category) {
-            return res.status(404).json({ success: false, message: 'Category not found' });
+            return res.status(404).json({ message: 'Category not found' });
         }
 
-        res.status(200).json({ success: true, category });
+        res.status(200).json({ category });
     } catch (error) {
         console.error('Error fetching category:', error);
-        res.status(500).json({ success: false, message: 'Error fetching category' });
+        res.status(500).json({ message: 'Error fetching category' });
     }
 };
 
@@ -36,7 +36,6 @@ const postCategoryCon = async (req, res) => {
 
         if (!category_id || !category_name) {
             return res.status(400).json({
-                success: false,
                 message: 'category_id and category_name are required'
             });
         }
@@ -44,13 +43,12 @@ const postCategoryCon = async (req, res) => {
         const result = await postCategoryDb(category_id, category_name);
 
         res.status(201).json({
-            success: true,
             message: 'Category created',
             category_id: result.insertId || Number(category_id)
         });
     } catch (error) {
         console.error('Error creating category:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -62,7 +60,6 @@ const patchCategoryCon = async (req, res) => {
 
         if (!category_name) {
             return res.status(400).json({
-                success: false,
                 message: 'category_name is required'
             });
         }
@@ -70,13 +67,13 @@ const patchCategoryCon = async (req, res) => {
         const result = await patchCategoryDb(category_id, category_name);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Category not found' });
+            return res.status(404).json({ message: 'Category not found' });
         }
 
-        res.status(200).json({ success: true, message: 'Category updated' });
+        res.status(200).json({ message: 'Category updated' });
     } catch (error) {
         console.error('Error updating category:', error);
-        res.status(500).json({ success: false, message: 'Error updating category' });
+        res.status(500).json({ message: 'Error updating category' });
     }
 };
 
@@ -88,13 +85,13 @@ const deleteCategoryCon = async (req, res) => {
         const result = await deleteCategoryDb(category_id);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Category not found' });
+            return res.status(404).json({ message: 'Category not found' });
         }
 
-        res.status(200).json({ success: true, message: 'Category deleted' });
+        res.status(200).json({ message: 'Category deleted' });
     } catch (error) {
         console.error('Error deleting category:', error);
-        res.status(500).json({ success: false, message: 'Error deleting category' });
+        res.status(500).json({ message: 'Error deleting category' });
     }
 };
 

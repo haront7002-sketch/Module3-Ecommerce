@@ -20,13 +20,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api', favouriteRoutes);
-app.use('/api', cartRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api', orderRoutes);
-app.use('/api', ticketRoutes);
-app.use('/api', categoryRoutes);
-app.use('/api', eventRoutes);
+app.use('/', favouriteRoutes);
+app.use('/', cartRoutes);
+app.use('/auth', authRoutes);
+app.use('/', orderRoutes);
+app.use('/', ticketRoutes);
+app.use('/', categoryRoutes);
+app.use('/', eventRoutes);
 
 
 // Test route

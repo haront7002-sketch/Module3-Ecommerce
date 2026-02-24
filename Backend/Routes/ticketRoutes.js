@@ -3,7 +3,6 @@ import { getOrderTicketsCon, postIssueTicketsCon } from '../Controllers/ticketCo
 
 const router = express.Router();
 
-// SECTION: Ticket endpoints
 router.get('/orders/:order_id/tickets', getOrderTicketsCon);
 router.post('/orders/:order_id/tickets/issue', postIssueTicketsCon);
 
