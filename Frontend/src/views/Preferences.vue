@@ -8,7 +8,7 @@
       <h1>Tell us about yourself</h1>
       <p class="subtitle">This helps us find better matches for you</p>
       
-      <!-- Step 1: Basic Info -->
+      <!-- Basic Info -->
       <div v-if="step === 1" class="step-content">
         <h2>Basic Information</h2>
         
@@ -28,107 +28,63 @@
         </div>
         
         <div class="form-group">
-          <label>Interested In</label>
-          <div class="options-grid">
-            <button 
-              v-for="interest in interests" 
-              :key="interest"
-              class="option-btn"
-              :class="{ selected: preferences.interestedIn === interest }"
-              @click="preferences.interestedIn = interest"
-            >
-              {{ interest }}
-            </button>
-          </div>
-        </div>
-        
-        <div class="form-group">
           <label>Birth Date</label>
           <input type="date" v-model="preferences.birthDate" class="form-input">
         </div>
         
         <div class="form-group">
-          <label>Location</label>
-          <input type="text" v-model="preferences.location" class="form-input" placeholder="City, Country">
+          <label>Street Address</label>
+          <input 
+            type="text" 
+            v-model="preferences.streetAddress" 
+            class="form-input" 
+            placeholder="e.g., 16 Portobello Close"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label>Suburb / Area</label>
+          <input 
+            type="text" 
+            v-model="preferences.suburb" 
+            class="form-input" 
+            placeholder="e.g., Portlands"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label>City / General Area</label>
+          <input 
+            type="text" 
+            v-model="preferences.city" 
+            class="form-input" 
+            placeholder="e.g., Mitchells Plain"
+          >
         </div>
       </div>
       
-      <!-- Step 2: Interests -->
+      <!-- Step 2: Interests (Updated with new categories) -->
       <div v-if="step === 2" class="step-content">
-        <h2>Select Your Interests</h2>
-        <p>Choose at least 3 interests</p>
+        <h2>Select Your Interest Categories</h2>
+        <p>Choose at least 3 categories that interest you</p>
         
         <div class="interests-grid">
           <button 
             v-for="interest in availableInterests" 
-            :key="interest"
+            :key="interest.id"
             class="interest-btn"
-            :class="{ selected: preferences.interests.includes(interest) }"
-            @click="toggleInterest(interest)"
+            :class="{ selected: preferences.interests.includes(interest.name) }"
+            @click="toggleInterest(interest.name)"
           >
-            {{ interest }}
+            <span class="interest-emoji">{{ interest.emoji }}</span>
+            <span class="interest-name">{{ interest.name }}</span>
           </button>
         </div>
       </div>
       
-      <!-- Step 3: Photos -->
+      <!-- Step 3: Looking For -->
       <div v-if="step === 3" class="step-content">
-        <h2>Add Photos</h2>
-        <p>Upload at least 1 photo to continue</p>
-        
-        <div class="photos-grid">
-          <div 
-            v-for="(photo, index) in photoPreviews" 
-            :key="index"
-            class="photo-item"
-          >
-            <img :src="photo" :alt="'Photo ' + (index + 1)">
-            <button class="remove-photo" @click="removePhoto(index)">
-              <i class="uil uil-times"></i>
-            </button>
-          </div>
-          
-          <label v-if="preferences.photos.length < 5" class="photo-item add-photo">
-            <input 
-              type="file" 
-              accept="image/*" 
-              @change="handlePhotoUpload" 
-              multiple
-              hidden
-            >
-            <i class="uil uil-plus"></i>
-            <span>Add Photo</span>
-          </label>
-        </div>
-      </div>
-      
-      <!-- Step 4: Looking For -->
-      <div v-if="step === 4" class="step-content">
-        <h2>Who are you looking for?</h2>
-        
-        <div class="form-group">
-          <label>Age Range</label>
-          <div class="range-slider">
-            <input 
-              type="range" 
-              v-model.number="preferences.ageRange.min" 
-              min="18" 
-              max="60"
-              @input="updateRange"
-            >
-            <input 
-              type="range" 
-              v-model.number="preferences.ageRange.max" 
-              min="18" 
-              max="60"
-              @input="updateRange"
-            >
-            <div class="range-values">
-              <span>{{ preferences.ageRange.min }} years</span>
-              <span>{{ preferences.ageRange.max }} years</span>
-            </div>
-          </div>
-        </div>
+        <h2>Your Preferences</h2>
         
         <div class="form-group">
           <label>Maximum Distance</label>
@@ -138,8 +94,14 @@
               v-model.number="preferences.maxDistance" 
               min="1" 
               max="100"
+              class="slider"
             >
-            <div class="distance-value">{{ preferences.maxDistance }} km</div>
+            <div class="distance-value">
+              <span>{{ preferences.maxDistance }} {{ distanceUnit }}</span>
+              <button class="unit-toggle" @click="toggleDistanceUnit">
+                Switch to {{ distanceUnit === 'km' ? 'miles' : 'km' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -155,7 +117,7 @@
         </button>
         
         <button 
-          v-if="step < 4" 
+          v-if="step < 3" 
           class="btn btn-primary"
           @click="nextStep"
           :disabled="!canProceed"
@@ -164,7 +126,7 @@
         </button>
         
         <button 
-          v-if="step === 4" 
+          v-if="step === 3" 
           class="btn btn-primary"
           @click="savePreferences"
           :disabled="!canComplete"
@@ -176,7 +138,7 @@
       <!-- Step Indicators -->
       <div class="step-indicators">
         <span 
-          v-for="n in 4" 
+          v-for="n in 3" 
           :key="n"
           class="step-dot"
           :class="{ active: step >= n, completed: step > n }"
@@ -195,50 +157,60 @@ import { useAuthStore } from '../stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 const step = ref(1)
+const distanceUnit = ref('km')
 
 const genders = ['Male', 'Female', 'Non-binary', 'Other']
-const interests = ['Men', 'Women', 'Everyone']
 
+// Updated interests with new categories and emojis
 const availableInterests = [
-  'Travel', 'Music', 'Food', 'Fitness', 'Art', 'Photography',
-  'Hiking', 'Movies', 'Reading', 'Gaming', 'Sports', 'Cooking',
-  'Dancing', 'Yoga', 'Coffee', 'Wine', 'Beach', 'Mountains'
+  { id: 1, name: 'Social Vibes', emoji: '🎉' },
+  { id: 2, name: 'Intellectual & Skills', emoji: '🧠' },
+  { id: 3, name: 'Arts & Culture', emoji: '🎨' },
+  { id: 4, name: 'Wellness & Body', emoji: '🧘' },
+  { id: 5, name: 'Creative Making', emoji: '✂️' },
+  { id: 6, name: 'Community & Cause', emoji: '🤝' },
+  { id: 7, name: 'Professional Networking', emoji: '💼' },
+  { id: 8, name: 'Life Stages & Niches', emoji: '🌱' },
+  { id: 9, name: 'Seasonal Annual', emoji: '🎪' },
+  { id: 10, name: 'Weird & Hyperlocal', emoji: '🌀' },
+  { id: 11, name: 'Food & Drink', emoji: '🍽️' },
+  { id: 12, name: 'Music & Nightlife', emoji: '🎵' },
+  { id: 13, name: 'Sports & Adventure', emoji: '⚽' },
+  { id: 14, name: 'Family & Kids', emoji: '👨‍👩‍👧' },
+  { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
 ]
 
 const preferences = reactive({
   gender: '',
-  interestedIn: '',
   birthDate: '',
-  location: '',
+  streetAddress: '',
+  suburb: '',
+  city: '',
   interests: [],
-  photos: [],
-  ageRange: { min: 18, max: 35 },
   maxDistance: 50
 })
 
-const photoPreviews = ref([])
-
 const progress = computed(() => {
-  return (step.value / 4) * 100
+  return (step.value / 3) * 100
 })
 
 const canProceed = computed(() => {
   switch(step.value) {
     case 1:
-      return preferences.gender && preferences.interestedIn && preferences.birthDate && preferences.location
+      return preferences.gender && 
+             preferences.birthDate && 
+             preferences.streetAddress && 
+             preferences.suburb && 
+             preferences.city
     case 2:
       return preferences.interests.length >= 3
-    case 3:
-      return preferences.photos.length >= 1
-    case 4:
-      return true
     default:
       return false
   }
 })
 
 const canComplete = computed(() => {
-  return preferences.ageRange.min && preferences.ageRange.max && preferences.maxDistance
+  return preferences.maxDistance
 })
 
 const toggleInterest = (interest) => {
@@ -252,34 +224,20 @@ const toggleInterest = (interest) => {
   }
 }
 
-const handlePhotoUpload = (event) => {
-  const files = Array.from(event.target.files)
-  files.forEach(file => {
-    if (preferences.photos.length < 5) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        photoPreviews.value.push(e.target.result)
-        preferences.photos.push(e.target.result)
-      }
-      reader.readAsDataURL(file)
-    }
-  })
-}
-
-const removePhoto = (index) => {
-  photoPreviews.value.splice(index, 1)
-  preferences.photos.splice(index, 1)
+const toggleDistanceUnit = () => {
+  // Convert the value when switching units
+  if (distanceUnit.value === 'km') {
+    preferences.maxDistance = Math.round(preferences.maxDistance * 0.621371)
+    distanceUnit.value = 'mi'
+  } else {
+    preferences.maxDistance = Math.round(preferences.maxDistance * 1.60934)
+    distanceUnit.value = 'km'
+  }
 }
 
 const nextStep = () => {
   if (canProceed.value) {
     step.value++
-  }
-}
-
-const updateRange = () => {
-  if (preferences.ageRange.min > preferences.ageRange.max) {
-    preferences.ageRange.max = preferences.ageRange.min
   }
 }
 
@@ -298,10 +256,21 @@ const savePreferences = () => {
   // Calculate age
   const age = calculateAge(preferences.birthDate)
   
+  // Format full location
+  const fullLocation = `${preferences.streetAddress}, ${preferences.suburb}, ${preferences.city}`
+  
   // Create complete preferences object
   const completePrefs = {
-    ...preferences,
-    age
+    gender: preferences.gender,
+    age: age,
+    birthDate: preferences.birthDate,
+    streetAddress: preferences.streetAddress,
+    suburb: preferences.suburb,
+    city: preferences.city,
+    location: fullLocation,
+    interests: preferences.interests,
+    maxDistance: preferences.maxDistance,
+    distanceUnit: distanceUnit.value
   }
   
   // Use auth store to save
@@ -315,7 +284,7 @@ const savePreferences = () => {
 <style scoped>
 .preferences-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #EEAECA 0%, #ffc9e0 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -328,7 +297,7 @@ const savePreferences = () => {
   padding: 40px;
   max-width: 800px;
   width: 100%;
-  box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+  box-shadow: 0 30px 60px rgba(238, 174, 202, 0.3);
   animation: slideUp 0.5s ease;
 }
 
@@ -353,7 +322,7 @@ const savePreferences = () => {
 
 .progress {
   height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: #4caf50;
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -408,14 +377,14 @@ h1 {
 }
 
 .option-btn:hover {
-  border-color: #667eea;
+  border-color: #4caf50;
   transform: translateY(-2px);
 }
 
 .option-btn.selected {
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  background: #4caf50;
   color: white;
-  border-color: transparent;
+  border-color: #4caf50;
 }
 
 .form-input {
@@ -429,20 +398,20 @@ h1 {
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #4caf50;
 }
 
 .interests-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
   padding: 10px;
 }
 
 .interest-btn {
-  padding: 10px;
+  padding: 15px 10px;
   border: 2px solid #e0e0e0;
   border-radius: 20px;
   background: white;
@@ -450,128 +419,86 @@ h1 {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.interest-emoji {
+  font-size: 24px;
+}
+
+.interest-name {
+  font-weight: 600;
+  text-align: center;
 }
 
 .interest-btn:hover {
-  border-color: #667eea;
+  border-color: #EEAECA;
   transform: translateY(-2px);
 }
 
 .interest-btn.selected {
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  background: #EEAECA;
   color: white;
-  border-color: transparent;
-}
-
-.photos-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 15px;
-}
-
-.photo-item {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.photo-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.remove-photo {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background: rgba(255, 99, 99, 0.9);
-  border: none;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.photo-item:hover .remove-photo {
-  opacity: 1;
-}
-
-.add-photo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #f8f9fa;
-  border: 2px dashed #ddd;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.add-photo:hover {
-  border-color: #667eea;
-  background: #f0f2f5;
-}
-
-.add-photo i {
-  font-size: 30px;
-  color: #667eea;
-  margin-bottom: 5px;
-}
-
-.add-photo span {
-  font-size: 12px;
-  color: #666;
-}
-
-.range-slider {
-  position: relative;
-  height: 60px;
-  padding-top: 20px;
-}
-
-.range-slider input[type=range] {
-  position: absolute;
-  width: 100%;
-  pointer-events: none;
-  -webkit-appearance: none;
-  background: transparent;
-}
-
-.range-slider input[type=range]::-webkit-slider-thumb {
-  pointer-events: auto;
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  cursor: pointer;
-}
-
-.range-values {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 30px;
-  color: #555;
+  border-color: #EEAECA;
 }
 
 .distance-slider {
   position: relative;
+  padding: 10px 0;
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #EEAECA, #4caf50);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #4caf50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
 }
 
 .distance-value {
-  text-align: center;
-  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  color: #555;
   font-weight: 600;
-  color: #667eea;
+}
+
+.unit-toggle {
+  background: none;
+  border: 2px solid #EEAECA;
+  color: #EEAECA;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.unit-toggle:hover {
+  background: #EEAECA;
+  color: white;
+  transform: translateY(-2px);
 }
 
 .nav-buttons {
@@ -597,13 +524,13 @@ h1 {
 }
 
 .btn-primary {
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  background: #4caf50;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
 }
 
 .btn-secondary {
@@ -633,11 +560,11 @@ h1 {
 }
 
 .step-dot.active {
-  background: #667eea;
+  background: #4caf50;
   transform: scale(1.2);
 }
 
 .step-dot.completed {
-  background: #764ba2;
+  background: #EEAECA;
 }
 </style>
