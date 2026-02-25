@@ -2,9 +2,16 @@ import db from '../Config/database.js';
 
 const User = {
 
-    // CREATE USER
+    // Create user
     create: async (userData) => {
-        const { user_name, user_surname, email, password, country, zip_code } = userData;
+        const {
+            user_name,
+            user_surname,
+            email,
+            password,
+            country,
+            zip_code
+        } = userData;
 
         const [result] = await db.execute(
             `INSERT INTO users 
@@ -14,56 +21,32 @@ const User = {
         );
 
         return {
-            user_id: result.insertId,
+             user_id: result.insertId,
             email
         };
     },
 
-    // FIND USER BY EMAIL
+    // Find user by email
     findByEmail: async (email) => {
         const [rows] = await db.execute(
-            `SELECT * FROM users WHERE email = ?`,
+            `SELECT * FROM users WHERE LOWER(email) = ?`,
             [email]
         );
 
         return rows[0];
     },
 
-    // FIND USER BY ID
+    // Find user by id (without password)
     findById: async (user_id) => {
         const [rows] = await db.execute(
-            `SELECT user_id, user_name, user_surname, email, country, zip_code, preferences 
-             FROM users 
+            `SELECT user_id, user_name, user_surname, email, country, zip_code, created_at
+             FROM users
              WHERE user_id = ?`,
             [user_id]
         );
 
         return rows[0];
     },
-
-    //  UPDATE USER COUNTRY / ZIP
-    updateUser: async (user_id, { country, zip_code }) => {
-        await db.execute(
-            `UPDATE users 
-             SET country = ?, zip_code = ? 
-             WHERE user_id = ?`,
-            [country, zip_code, user_id]
-        );
-
-        return { user_id, country, zip_code };
-    },
-
-    // UPDATE USER PREFERENCES
-    updatePreferences: async (user_id, preferences) => {
-        await db.execute(
-            `UPDATE users 
-             SET preferences = ? 
-             WHERE user_id = ?`,
-            [preferences, user_id]
-        );
-
-        return { user_id, preferences };
-    }
 
 };
 

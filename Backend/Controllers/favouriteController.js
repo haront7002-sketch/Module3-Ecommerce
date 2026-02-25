@@ -7,7 +7,6 @@ const postFavouriteCon = async (req, res) => {
         // Validation
         if (!user_id || !event_id) {
             return res.status(400).json({ 
-                success: false, 
                 message: 'user_id and event_id are required' 
             });
         }
@@ -17,7 +16,6 @@ const postFavouriteCon = async (req, res) => {
         
         if (existing.length > 0) {
             return res.status(400).json({ 
-                success: false, 
                 message: 'Event already in favourites' 
             });
         }
@@ -26,7 +24,6 @@ const postFavouriteCon = async (req, res) => {
         const result = await postFavouritesDb(user_id, event_id);
         
         res.status(201).json({ 
-            success: true, 
             message: 'Added to favourites successfully',
             favourite_id: result.insertId
         });
@@ -34,7 +31,6 @@ const postFavouriteCon = async (req, res) => {
     } catch (error) {
         console.error('Error adding to favourites:', error);
         res.status(500).json({ 
-            success: false, 
             message: error.message 
         });
     }
@@ -42,19 +38,23 @@ const postFavouriteCon = async (req, res) => {
 
 const getFavouritesCon = async (req, res) => {
     try {
-        const user_id = req.params.user_id;
+        const user_id = req.params.user_id || req.query.user_id;
+
+        if (!user_id) {
+            return res.status(400).json({
+                message: 'user_id is required'
+            });
+        }
         
         const favourites = await getUserFavouritesDb(user_id);
         
         res.status(200).json({ 
-            success: true, 
             favourites: favourites 
         });
         
     } catch (error) {
         console.error('Error fetching favourites:', error);
         res.status(500).json({ 
-            success: false, 
             message: 'Error fetching favourites' 
         });
     }
@@ -67,7 +67,6 @@ const deleteFavouriteCon = async (req, res) => {
         
         if (!user_id || !event_id) {
             return res.status(400).json({ 
-                success: false, 
                 message: 'User ID and Event ID are required' 
             });
         }
@@ -76,20 +75,17 @@ const deleteFavouriteCon = async (req, res) => {
         
         if (result.affectedRows === 0) {
             return res.status(404).json({ 
-                success: false, 
                 message: 'Favourite not found' 
             });
         }
 
         res.status(200).json({ 
-            success: true, 
             message: 'Removed from favourites successfully' 
         });
         
     } catch (error) {
         console.error('Error in removeUserFavourite:', error);
         res.status(500).json({ 
-            success: false, 
             message: 'Error removing from favourites',
             error: error.message 
         });

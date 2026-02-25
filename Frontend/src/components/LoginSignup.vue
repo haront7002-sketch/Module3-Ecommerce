@@ -68,10 +68,23 @@
                                             <div class="form-group">
                                                 <input 
                                                     type="text" 
-                                                    v-model="signupForm.fullName"
+                                                    v-model="signupForm.name"
                                                     class="form-style" 
-                                                    placeholder="Your Full Name" 
-                                                    :id="'logname-' + uniqueId"
+                                                    placeholder="Your Name" 
+                                                    :id="'signup-name-' + uniqueId"
+                                                    autocomplete="off"
+                                                    @keyup.enter="handleSignup"
+                                                >
+                                                <i class="input-icon uil uil-user"></i>
+                                            </div>
+                                            
+                                            <div class="form-group mt-2">
+                                                <input 
+                                                    type="text" 
+                                                    v-model="signupForm.surname"
+                                                    class="form-style" 
+                                                    placeholder="Your Surname" 
+                                                    :id="'signup-surname-' + uniqueId"
                                                     autocomplete="off"
                                                     @keyup.enter="handleSignup"
                                                 >
@@ -102,6 +115,37 @@
                                                     @keyup.enter="handleSignup"
                                                 >
                                                 <i class="input-icon uil uil-lock-alt"></i>
+                                            </div>
+                                            
+                                            <div class="form-group mt-2">
+                                                <select 
+                                                    v-model="signupForm.areaCode"
+                                                    class="form-style select-style"
+                                                    :id="'signup-area-' + uniqueId"
+                                                >
+                                                    <option value="" disabled selected>Select Cape Town Area</option>
+                                                    <option value="8001">Cape Town City Centre (8001)</option>
+                                                    <option value="8005">Sea Point (8005)</option>
+                                                    <option value="7700">Rondebosch (7700)</option>
+                                                    <option value="7708">Claremont (7708)</option>
+                                                    <option value="7800">Constantia (7800)</option>
+                                                    <option value="7945">Tokai (7945)</option>
+                                                    <option value="7806">Hout Bay (7806)</option>
+                                                    <option value="7441">Blouberg (7441)</option>
+                                                    <option value="7443">Parklands (7443)</option>
+                                                    <option value="7530">Bellville (7530)</option>
+                                                    <option value="7570">Durbanville (7570)</option>
+                                                    <option value="7640">Milnerton (7640)</option>
+                                                    <option value="7130">Somerset West (7130)</option>
+                                                    <option value="7140">Strand (7140)</option>
+                                                    <option value="7800">Kirstenhof (7800)</option>
+                                                    <option value="7945">Bergvliet (7945)</option>
+                                                    <option value="7800">Meadowridge (7800)</option>
+                                                    <option value="7708">Kenilworth (7708)</option>
+                                                    <option value="7945">Lakeside (7945)</option>
+                                                    <option value="7800">Muizenberg (7800)</option>
+                                                </select>
+                                                <i class="input-icon uil uil-location-point"></i>
                                             </div>
                                             
                                             <button @click="handleSignup" class="btn mt-4">submit</button>
@@ -138,10 +182,36 @@ const loginForm = reactive({
 })
 
 const signupForm = reactive({
-    fullName: '',
+    name: '',
+    surname: '',
     email: '',
-    password: ''
+    password: '',
+    areaCode: ''
 })
+
+// Cape Town area codes for reference
+const capeTownAreas = [
+    { code: '8001', area: 'Cape Town City Centre' },
+    { code: '8005', area: 'Sea Point' },
+    { code: '7700', area: 'Rondebosch' },
+    { code: '7708', area: 'Claremont' },
+    { code: '7800', area: 'Constantia' },
+    { code: '7945', area: 'Tokai' },
+    { code: '7806', area: 'Hout Bay' },
+    { code: '7441', area: 'Blouberg' },
+    { code: '7443', area: 'Parklands' },
+    { code: '7530', area: 'Bellville' },
+    { code: '7570', area: 'Durbanville' },
+    { code: '7640', area: 'Milnerton' },
+    { code: '7130', area: 'Somerset West' },
+    { code: '7140', area: 'Strand' },
+    { code: '7800', area: 'Kirstenhof' },
+    { code: '7945', area: 'Bergvliet' },
+    { code: '7800', area: 'Meadowridge' },
+    { code: '7708', area: 'Kenilworth' },
+    { code: '7945', area: 'Lakeside' },
+    { code: '7800', area: 'Muizenberg' }
+]
 
 // Methods
 const handleLogin = () => {
@@ -164,18 +234,30 @@ const handleSignup = () => {
     console.log('Signup attempt:', signupForm)
     
     // Basic validation
-    if (!signupForm.fullName || !signupForm.email || !signupForm.password) {
-        alert('Please fill in all fields')
+    if (!signupForm.name || !signupForm.surname || !signupForm.email || !signupForm.password || !signupForm.areaCode) {
+        alert('Please fill in all fields and select your area code')
         return
     }
     
+    if (signupForm.password.length < 6) {
+        alert('Password must be at least 6 characters long')
+        return
+    }
+    
+    // Get area name from code
+    const selectedArea = capeTownAreas.find(area => area.code === signupForm.areaCode)
+    const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
+    
     // Use auth store
     authStore.signup({
-        name: signupForm.fullName,
-        email: signupForm.email
+        name: signupForm.name,
+        surname: signupForm.surname,
+        fullName: `${signupForm.name} ${signupForm.surname}`,
+        email: signupForm.email,
+        location: location
     })
     
-    alert(`Welcome to the community, ${signupForm.fullName}! Let's set up your preferences.`)
+    alert(`Welcome to the community, ${signupForm.name}! Let's set up your preferences.`)
     router.push('/preferences')
 }
 
@@ -214,7 +296,7 @@ const forgotPassword = () => {
     height: 36px;
     border-radius: 50%;
     color: #ffeba7;
-    background-color: #102770;
+    background-color: #eef2ff;
     font-family: 'unicons';
     content: '\eb4f';
     z-index: 20;
@@ -234,7 +316,7 @@ const forgotPassword = () => {
     position: relative;
     width: 440px;
     max-width: 100%;
-    height: 400px;
+    height: 550px;
     -webkit-transform-style: preserve-3d;
     transform-style: preserve-3d;
     perspective: 800px;
@@ -260,7 +342,7 @@ const forgotPassword = () => {
 .card-back {
     width: 100%;
     height: 100%;
-    background-color: #2a2b38;
+    background-color: #ffffff;
     background-image: url('/src/assets/bg.svg');
     background-position: bottom center;
     background-repeat: no-repeat;
@@ -311,10 +393,24 @@ const forgotPassword = () => {
     letter-spacing: 0.5px;
     outline: none;
     color: #c4c3ca;
-    background-color: #1f2029;
+    background-color: #989dbb;
     border: none;
     transition: all 200ms linear;
     box-shadow: 0 4px 8px 0 rgba(21,21,21,.2);
+}
+
+.select-style {
+    padding-left: 55px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.select-style option {
+    background-color: #1f2029;
+    color: #d1cee2;
+    padding: 10px;
 }
 
 .form-style:focus,
@@ -334,10 +430,11 @@ const forgotPassword = () => {
     text-align: left;
     color: #ffeba7;
     transition: all 200ms linear;
+    z-index: 10;
 }
 
 .form-group input::placeholder {
-    color: #c4c3ca;
+    color: #fbfaff;
     opacity: 0.7;
     transition: all 200ms linear;
 }
@@ -350,7 +447,7 @@ const forgotPassword = () => {
 @media (max-width: 576px) {
     .card-3d-wrap {
         width: 100%;
-        height: 450px;
+        height: 600px;
     }
     
     .center-wrap {

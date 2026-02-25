@@ -6,7 +6,6 @@ const postCheckoutCon = async (req, res) => {
 
         if (!user_id || !payment_method) {
             return res.status(400).json({
-                success: false,
                 message: 'user_id and payment_method are required'
             });
         }
@@ -14,14 +13,12 @@ const postCheckoutCon = async (req, res) => {
         const result = await postCheckoutDb(user_id, payment_method, status);
 
         return res.status(201).json({
-            success: true,
             message: 'Checkout completed successfully',
             ...result
         });
     } catch (error) {
         const status_code = error.message === 'Cart is empty' ? 400 : 500;
         return res.status(status_code).json({
-            success: false,
             message: error.message === 'Cart is empty' ? 'Cart is empty' : 'Checkout failed',
             error: error.message
         });

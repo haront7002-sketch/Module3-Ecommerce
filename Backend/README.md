@@ -23,7 +23,7 @@ PORT=3000
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=root
-DB_NAME=south_of_somewhere
+DB_NAME=s_o_s
 ```
 
 ## Database

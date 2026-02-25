@@ -2,6 +2,10 @@ import { createRouter, createWebHistory } from "vue-router";
 import Swipe from "@/views/Swipe.vue";
 import Profile from "@/views/Profile.vue";
 import Preferences from "@/views/Preferences.vue";
+import Explore from "@/views/Explore.vue";
+import Favourites from "@/views/Favourites.vue";
+import Map from "@/views/Map.vue";
+import Payments from "@/views/Payments.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -10,6 +14,30 @@ const router = createRouter({
       path: "/",
       name: "home",
       component: Swipe,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: "/explore",
+      name: "explore",
+      component: Explore,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: "/favourites",
+      name: "favourites",
+      component: Favourites,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: "/map",
+      name: "map",
+      component: Map,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: "/payments",
+      name: "payments",
+      component: Payments,
       meta: { requiresAuth: true }
     },
     {

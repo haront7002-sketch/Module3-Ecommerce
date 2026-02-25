@@ -1,19 +1,24 @@
 import { getCartDb, postCartDb, deleteCartDb, patchCartQuantityDb, deleteUserCartDb } from '../Models/cartModel.js';
 
-// GET /cart/:user_id - Get all cart items for a user
+// GET /cart/:user_id or /cart?user_id= - Get all cart items for a user
 const getCartCon = async (req, res) => {
     try {
-        const user_id = req.params.user_id;
+        const user_id = req.params.user_id || req.query.user_id;
+
+        if (!user_id) {
+            return res.status(400).json({
+                message: 'user_id is required'
+            });
+        }
+
         const cart = await getCartDb(user_id);
 
         res.status(200).json({
-            success: true,
             cart: cart
         });
     } catch (error) {
         console.error('Error fetching cart:', error);
         res.status(500).json({
-            success: false,
             message: 'Error fetching cart'
         });
     }
@@ -26,7 +31,6 @@ const postCartCon = async (req, res) => {
 
         if (!user_id || !event_id || !quantity) {
             return res.status(400).json({
-                success: false,
                 message: 'user_id, event_id and quantity are required'
             });
         }
@@ -37,21 +41,18 @@ const postCartCon = async (req, res) => {
 
         if (!Number.isInteger(parsed_user_id) || parsed_user_id <= 0) {
             return res.status(400).json({
-                success: false,
                 message: 'user_id must be a positive integer'
             });
         }
 
         if (!Number.isInteger(parsed_event_id) || parsed_event_id <= 0) {
             return res.status(400).json({
-                success: false,
                 message: 'event_id must be a positive integer'
             });
         }
 
         if (!Number.isFinite(parsed_quantity) || parsed_quantity <= 0) {
             return res.status(400).json({
-                success: false,
                 message: 'quantity must be a positive number'
             });
         }
@@ -59,7 +60,6 @@ const postCartCon = async (req, res) => {
         const result = await postCartDb(parsed_user_id, parsed_event_id, parsed_quantity);
 
         res.status(201).json({
-            success: true,
             message: 'Cart updated successfully',
             action: result.action,
             cart_id: result.cart_id
@@ -67,7 +67,6 @@ const postCartCon = async (req, res) => {
     } catch (error) {
         console.error('Error adding to cart:', error);
         res.status(500).json({
-            success: false,
             message: 'Error adding to cart'
         });
     }
@@ -81,7 +80,6 @@ const patchCartQuantityCon = async (req, res) => {
 
         if (!quantity) {
             return res.status(400).json({
-                success: false,
                 message: 'quantity is required'
             });
         }
@@ -89,7 +87,6 @@ const patchCartQuantityCon = async (req, res) => {
         const parsed_quantity = Number(quantity);
         if (!Number.isFinite(parsed_quantity) || parsed_quantity <= 0) {
             return res.status(400).json({
-                success: false,
                 message: 'quantity must be a positive number'
             });
         }
@@ -98,19 +95,16 @@ const patchCartQuantityCon = async (req, res) => {
 
         if (result.affectedRows === 0) {
             return res.status(404).json({
-                success: false,
                 message: 'Cart item not found'
             });
         }
 
         res.status(200).json({
-            success: true,
             message: 'Cart quantity updated successfully'
         });
     } catch (error) {
         console.error('Error updating cart quantity:', error);
         res.status(500).json({
-            success: false,
             message: 'Error updating cart quantity'
         });
     }
@@ -124,19 +118,16 @@ const deleteCartCon = async (req, res) => {
 
         if (result.affectedRows === 0) {
             return res.status(404).json({
-                success: false,
                 message: 'Cart item not found'
             });
         }
 
         res.status(200).json({
-            success: true,
             message: 'Removed from cart successfully'
         });
     } catch (error) {
         console.error('Error removing from cart:', error);
         res.status(500).json({
-            success: false,
             message: 'Error removing from cart'
         });
     }
@@ -149,13 +140,11 @@ const deleteUserCartCon = async (req, res) => {
         await deleteUserCartDb(user_id);
 
         res.status(200).json({
-            success: true,
             message: 'User cart cleared successfully'
         });
     } catch (error) {
         console.error('Error clearing user cart:', error);
         res.status(500).json({
-            success: false,
             message: 'Error clearing user cart'
         });
     }
