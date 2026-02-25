@@ -59,7 +59,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("token");
   const userData = JSON.parse(localStorage.getItem("user") || '{}');
-  const hasPreferences = userData.profileComplete;
+  const hasPreferences = userData.profileComplete !== false;
   
   console.log('Navigation:', { to: to.path, token: !!token, hasPreferences });
   

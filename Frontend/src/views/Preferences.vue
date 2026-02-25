@@ -31,36 +31,6 @@
           <label>Birth Date</label>
           <input type="date" v-model="preferences.birthDate" class="form-input">
         </div>
-        
-        <div class="form-group">
-          <label>Street Address</label>
-          <input 
-            type="text" 
-            v-model="preferences.streetAddress" 
-            class="form-input" 
-            placeholder="e.g., 16 Portobello Close"
-          >
-        </div>
-        
-        <div class="form-group">
-          <label>Suburb / Area</label>
-          <input 
-            type="text" 
-            v-model="preferences.suburb" 
-            class="form-input" 
-            placeholder="e.g., Portlands"
-          >
-        </div>
-        
-        <div class="form-group">
-          <label>City / General Area</label>
-          <input 
-            type="text" 
-            v-model="preferences.city" 
-            class="form-input" 
-            placeholder="e.g., Mitchells Plain"
-          >
-        </div>
       </div>
       
       <!-- Step 2: Interests (Updated with new categories) -->
@@ -183,9 +153,6 @@ const availableInterests = [
 const preferences = reactive({
   gender: '',
   birthDate: '',
-  streetAddress: '',
-  suburb: '',
-  city: '',
   interests: [],
   maxDistance: 50
 })
@@ -198,10 +165,7 @@ const canProceed = computed(() => {
   switch(step.value) {
     case 1:
       return preferences.gender && 
-             preferences.birthDate && 
-             preferences.streetAddress && 
-             preferences.suburb && 
-             preferences.city
+             preferences.birthDate
     case 2:
       return preferences.interests.length >= 3
     default:
@@ -256,18 +220,11 @@ const savePreferences = () => {
   // Calculate age
   const age = calculateAge(preferences.birthDate)
   
-  // Format full location
-  const fullLocation = `${preferences.streetAddress}, ${preferences.suburb}, ${preferences.city}`
-  
   // Create complete preferences object
   const completePrefs = {
     gender: preferences.gender,
     age: age,
     birthDate: preferences.birthDate,
-    streetAddress: preferences.streetAddress,
-    suburb: preferences.suburb,
-    city: preferences.city,
-    location: fullLocation,
     interests: preferences.interests,
     maxDistance: preferences.maxDistance,
     distanceUnit: distanceUnit.value
@@ -279,9 +236,9 @@ const savePreferences = () => {
   store.commit('setMe', updatedUser)
   localStorage.setItem('user', JSON.stringify(updatedUser))
   localStorage.setItem('preferences', JSON.stringify(completePrefs))
-  
-  alert('Profile completed! Redirecting to your profile...')
-  router.push('/profile')
+
+  sessionStorage.setItem('justLoggedIn', 'true')
+  window.location.href = '/'
 }
 </script>
 

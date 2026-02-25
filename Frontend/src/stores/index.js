@@ -60,6 +60,11 @@ export default createStore({
     },
     setMe(state, payload) {
       state.me = payload
+      if (payload) {
+        localStorage.setItem('user', JSON.stringify(payload))
+      } else {
+        localStorage.removeItem('user')
+      }
     },
     setToken(state, token) {
       state.token = token
@@ -75,6 +80,7 @@ export default createStore({
       state.isAuthenticated = false
       state.me = null
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
     },
     addToFavourites(state, event) {
       const eventId = event?.id ?? event?.event_id
@@ -277,7 +283,7 @@ export default createStore({
       })
       return response.json()
     },
-     async login({ commit }, credentials) {
+     async login({ commit, dispatch, state }, credentials) {
       try {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
@@ -285,18 +291,19 @@ export default createStore({
           body: JSON.stringify(credentials)
         })
         const data = await response.json()
-        if (data.token) {
-          commit('setToken', data.token)
-          commit('setMe', data.user)
+        if (!response.ok || !data.token) {
+          return { success: false, error: data?.message || 'Login failed' }
         }
-        return data
+        commit('setToken', data.token)
+        await dispatch('fetchMe')
+        return { success: true, token: data.token, user: state.me }
       } catch (error) {
         console.error('Login error:', error)
-        throw error
+        return { success: false, error: error.message || 'Login failed' }
       }
     },
     
-    async register({ commit }, userData) {
+    async register({ commit, dispatch, state }, userData) {
       try {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
           method: 'POST',
@@ -304,14 +311,15 @@ export default createStore({
           body: JSON.stringify(userData)
         })
         const data = await response.json()
-        if (data.token) {
-          commit('setToken', data.token)
-          commit('setMe', data.user)
+        if (!response.ok || !data.token) {
+          return { success: false, error: data?.message || 'Signup failed' }
         }
-        return data
+        commit('setToken', data.token)
+        await dispatch('fetchMe')
+        return { success: true, token: data.token, user: state.me }
       } catch (error) {
         console.error('Register error:', error)
-        throw error
+        return { success: false, error: error.message || 'Signup failed' }
       }
     },
     
@@ -325,6 +333,9 @@ export default createStore({
         const response = await fetch(`${API_BASE_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${state.token}` }
         })
+        if (!response.ok) {
+          throw new Error(`Fetch me failed (${response.status})`)
+        }
         const data = await response.json()
         commit('setMe', data)
         return data

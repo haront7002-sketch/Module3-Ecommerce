@@ -7,23 +7,14 @@
     @touchstart="handleDragStart"
   >
     <div class="card-content">
-      <div class="card-emoji">{{ eventData.emoji || '🎉' }}</div>
-      <div class="card-title">{{ eventData.title }}</div>
+      <img
+        class="card-image"
+        :src="eventData.image_url || 'https://placehold.co/280x180?text=Event'"
+        alt="Event image"
+      />
+      <div class="card-title">{{ eventData.event_title || eventData.title }}</div>
       <div class="card-description">{{ eventData.description }}</div>
-      <div class="card-meta">
-        <span class="meta-item">
-          <i class="uil uil-location-point"></i> {{ eventData.location?.area || eventData.area }}
-        </span>
-        <span class="meta-item">
-          <i class="uil uil-tag"></i> {{ eventData.category }}
-        </span>
-        <span class="meta-item price">
-          <i class="uil uil-dollar-alt"></i> R {{ eventData.price }}
-        </span>
-      </div>
-      <div class="card-date">
-        <i class="uil uil-calendar-alt"></i> {{ formatDate(eventData.startDate) }}
-      </div>
+      <div class="card-category">{{ eventData.category || eventData.category_name }}</div>
     </div>
     <div class="swipe-indicator like-indicator" :style="{ opacity: likeOpacity }">LIKE</div>
     <div class="swipe-indicator nope-indicator" :style="{ opacity: nopeOpacity }">NOPE</div>
@@ -98,13 +89,6 @@ const cardStyle = computed(() => {
     transition: 'transform 0.3s ease, opacity 0.3s ease'
   }
 })
-
-// Methods
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
-}
 
 const handleDragStart = (e) => {
   if (!props.isTopCard) return
@@ -250,10 +234,12 @@ const cleanup = () => {
   color: white;
 }
 
-.card-emoji {
-  font-size: 80px;
+.card-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 16px;
   margin-bottom: 20px;
-  text-align: center;
 }
 
 .card-title {
@@ -271,45 +257,17 @@ const cleanup = () => {
   line-height: 1.5;
 }
 
-.card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-bottom: 15px;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.card-category {
   font-size: 14px;
   color: rgba(255,255,255,0.9);
   background: rgba(255,255,255,0.2);
-  padding: 5px 12px;
+  padding: 8px 16px;
   border-radius: 20px;
-}
-
-.meta-item.price {
-  color: #AEE994;
+  align-self: center;
   font-weight: 600;
+  margin-bottom: 16px;
 }
 
-.meta-item i {
-  font-size: 14px;
-}
-
-.card-date {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  color: rgba(255,255,255,0.9);
-  background: rgba(255,255,255,0.15);
-  padding: 10px;
-  border-radius: 30px;
-}
 
 .swipe-indicator {
   position: absolute;

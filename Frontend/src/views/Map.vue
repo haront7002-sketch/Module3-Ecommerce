@@ -52,7 +52,7 @@
             @click="focusEvent(ev)"
           >
             <div class="event-item-top">
-              <span class="event-emoji">{{ ev.emoji || '🎉' }}</span>
+              <img class="event-emoji" :src="ev.image_url || 'https://placehold.co/56x56?text=Event'" alt="Event image" />
               <div class="event-item-text">
                 <div class="event-title-row">
                   <span class="event-title">{{ ev.title }}</span>
@@ -91,71 +91,219 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import { useStore } from "vuex";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
-const router = useRouter();
-const store = useStore();
-const mapEl = ref(null);
-let map = null;
-let L = null;
-const markerById = new Map();
-const query = ref("");
+const router = useRouter()
+const store = useStore()
 
-// Load Leaflet from CDN dynamically
-const loadLeaflet = () => {
-  return new Promise((resolve) => {
-    if (window.L) {
-      resolve(window.L);
-      return;
+const mapEl = ref(null)
+let map = null
+const markerById = new Map()
+const query = ref('')
+const loading = ref(false)
+const page = ref(1)
+const hasMoreEvents = ref(true)
+const fallbackEvents = ref([])
+const CAPE_TOWN_CENTER = { lat: -33.9249, lng: 18.4241 }
+
+const defaultMapEvents = [
+  {
+    id: 'map-1',
+    title: 'Sunset Jazz on the Promenade',
+    description: 'Live jazz and food trucks by the ocean.',
+    area: 'Sea Point',
+    category: 'Music & Nightlife',
+    price: 180,
+    image_url: 'https://placehold.co/120x120?text=Jazz',
+    startDate: '2026-03-20T18:30:00',
+    lat: -33.9075,
+    lng: 18.3897
+  },
+  {
+    id: 'map-2',
+    title: 'Woodstock Artisan Market',
+    description: 'Local stalls, craft coffee, and street food.',
+    area: 'Woodstock',
+    category: 'Food & Drink',
+    price: 0,
+    image_url: 'https://placehold.co/120x120?text=Market',
+    startDate: '2026-03-21T10:00:00',
+    lat: -33.9279,
+    lng: 18.4448
+  },
+  {
+    id: 'map-3',
+    title: 'Rooftop Film Night',
+    description: 'Outdoor cinema with city skyline views.',
+    area: 'City Centre',
+    category: 'Arts & Culture',
+    price: 95,
+    image_url: 'https://placehold.co/120x120?text=Film',
+    startDate: '2026-03-22T19:00:00',
+    lat: -33.9249,
+    lng: 18.4241
+  }
+]
+
+const AREA_COORDINATES = {
+  'city centre': { lat: -33.9249, lng: 18.4241 },
+  'cape town': { lat: -33.9249, lng: 18.4241 },
+  'sea point': { lat: -33.9075, lng: 18.3897 },
+  'woodstock': { lat: -33.9279, lng: 18.4448 },
+  'observatory': { lat: -33.9367, lng: 18.4642 },
+  'green point': { lat: -33.9029, lng: 18.4106 },
+  'claremont': { lat: -33.9806, lng: 18.4652 },
+  'rondebosch': { lat: -33.9608, lng: 18.4676 },
+  'bellville': { lat: -33.9006, lng: 18.6292 },
+  'durbanville': { lat: -33.8322, lng: 18.6491 },
+  'hout bay': { lat: -34.0431, lng: 18.3486 },
+  'table mountain': { lat: -33.9628, lng: 18.4098 }
+}
+
+const EVENT_LOCATION_COORDINATES = {
+  'workshop17, kloof street': { lat: -33.9284, lng: 18.4126 },
+  'bree street / church street': { lat: -33.9238, lng: 18.4177 },
+  'clifton 4th beach': { lat: -33.9419, lng: 18.3723 },
+  'clay cafe, hout bay': { lat: -34.0434, lng: 18.3497 },
+  'muizenberg beach': { lat: -34.1080, lng: 18.4699 },
+  'the galileo, v&a waterfront': { lat: -33.9070, lng: 18.4208 },
+  'the little sunshine centre, observatory': { lat: -33.9367, lng: 18.4642 },
+  'kirstenbosch botanical gardens': { lat: -33.9883, lng: 18.4326 },
+  'armchair theatre, obs': { lat: -33.9389, lng: 18.4669 },
+  'cape town comedy club, v&a waterfront': { lat: -33.9054, lng: 18.4198 },
+  'newlands forest': { lat: -33.9740, lng: 18.4472 },
+  'signal hill, cape town': { lat: -33.9180, lng: 18.3958 },
+  'the woodstock foundry': { lat: -33.9303, lng: 18.4476 },
+  'grub & vine, bree street': { lat: -33.9228, lng: 18.4168 },
+  'silo district, v&a waterfront, cape town': { lat: -33.9078, lng: 18.4181 }
+}
+
+const normalizeLocation = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const deriveCoordinates = (event) => {
+  const rawLat = Number(event.location?.coordinates?.lat ?? event.lat)
+  const rawLng = Number(event.location?.coordinates?.lng ?? event.lng)
+  if (Number.isFinite(rawLat) && Number.isFinite(rawLng)) {
+    return { lat: rawLat, lng: rawLng }
+  }
+
+  const locationText = normalizeLocation(event.location ?? event.location?.address)
+  const locationKey = Object.keys(EVENT_LOCATION_COORDINATES).find((key) => locationText.includes(key))
+  if (locationKey) return EVENT_LOCATION_COORDINATES[locationKey]
+
+  const areaText = normalizeLocation(
+    event.area ??
+    event.location?.area ??
+    event.location?.address ??
+    event.location
+  )
+
+  const matchedKey = Object.keys(AREA_COORDINATES).find((key) => areaText.includes(key))
+  const base = matchedKey ? AREA_COORDINATES[matchedKey] : CAPE_TOWN_CENTER
+  return base
+}
+
+const normalizedEvents = computed(() => {
+  const mapped = (store.state.events || []).map((event) => {
+    const { lat, lng } = deriveCoordinates(event)
+
+    return {
+      ...event,
+      id: event.id ?? event.event_id,
+      title: event.title ?? event.event_title ?? 'Untitled Event',
+      description: event.description ?? '',
+      area: event.area ?? event.location?.area ?? event.location ?? 'Unknown',
+      category: event.category ?? event.category_name ?? 'General',
+      price: Number(event.price ?? 0),
+      image_url: event.image_url ?? event.image ?? '',
+      startDate: event.startDate ?? event.start_date ?? event.date ?? null,
+      lat,
+      lng
     }
-    
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
-    script.crossOrigin = '';
-    
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-    link.crossOrigin = '';
-    
-    document.head.appendChild(link);
-    
-    script.onload = () => {
-      resolve(window.L);
-    };
-    
-    document.body.appendChild(script);
-  });
-};
+  })
 
-// Events from Vuex
-const events = computed(() => store.state.events);
+  if (mapped.length > 0) return mapped
+  return fallbackEvents.value
+})
 
-// Filtered events
 const filteredEvents = computed(() => {
-  const q = query.value.toLowerCase().trim();
-  if (!q) return events.value;
-  return events.value.filter((e) => {
-    return (
-      e.title.toLowerCase().includes(q) ||
-      e.area.toLowerCase().includes(q) ||
-      e.description.toLowerCase().includes(q) ||
-      e.category.toLowerCase().includes(q)
-    );
-  });
-});
+  const q = query.value.toLowerCase().trim()
+  if (!q) return normalizedEvents.value
 
-// Popup HTML
+  return normalizedEvents.value.filter((e) =>
+    String(e.title || '').toLowerCase().includes(q) ||
+    String(e.area || '').toLowerCase().includes(q) ||
+    String(e.description || '').toLowerCase().includes(q) ||
+    String(e.category || '').toLowerCase().includes(q)
+  )
+})
+
+const eventStore = {
+  get loading() {
+    return loading.value
+  },
+  get filteredEvents() {
+    return filteredEvents.value
+  },
+  get events() {
+    return normalizedEvents.value
+  },
+  async fetchEvents() {
+    loading.value = true
+    try {
+      await store.dispatch('getEvents')
+      if ((store.state.events || []).length === 0) {
+        fallbackEvents.value = defaultMapEvents
+      } else {
+        fallbackEvents.value = []
+      }
+    } catch (error) {
+      console.error('Error loading map events:', error)
+      fallbackEvents.value = defaultMapEvents
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const userLocation = computed(() => {
+  const location = store.state.me?.location
+  if (typeof location === 'string') return location
+  return location?.area || 'Cape Town'
+})
+
+const userLatLng = computed(() => {
+  const lat = Number(store.state.me?.location?.coordinates?.lat ?? store.state.me?.lat)
+  const lng = Number(store.state.me?.location?.coordinates?.lng ?? store.state.me?.lng)
+  return {
+    lat: Number.isFinite(lat) ? lat : CAPE_TOWN_CENTER.lat,
+    lng: Number.isFinite(lng) ? lng : CAPE_TOWN_CENTER.lng
+  }
+})
+
+const formatDate = (dateValue) => {
+  if (!dateValue) return ''
+  const d = new Date(dateValue)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
 const popupHtml = (ev) => {
-  const isFav = favouritesStore.favouriteIds.includes(ev.id)
   return `
     <div style="min-width:220px">
       <div style="display:flex; gap:10px; align-items:flex-start;">
-        <div style="font-size:22px; line-height:1;">${ev.emoji || '🎉'}</div>
+        <img src="${ev.image_url || 'https://placehold.co/56x56?text=Event'}" alt="Event image" style="width:56px;height:56px;border-radius:12px;object-fit:cover;flex-shrink:0;" />
         <div>
           <h3 style="margin:0 0 6px; font-size:14px; color:#333;">${ev.title}</h3>
           <div style="margin:0 0 6px; color:#666; font-size:12px;">${ev.area || ''}</div>
@@ -167,164 +315,103 @@ const popupHtml = (ev) => {
         </div>
       </div>
     </div>
-  `;
-};
+  `
+}
 
-// Wire up buttons
 const wirePopupButtons = (ev) => {
-  const marker = markerById.get(ev.id);
-  if (marker) {
-    marker.off("popupopen");
-    marker.on("popupopen", () => {
-      setTimeout(() => {
-        const favBtn = document.getElementById(`fav-${ev.id}`);
-        const payBtn = document.getElementById(`pay-${ev.id}`);
-        
-        if (favBtn) {
-          favBtn.onclick = async (e) => {
-            e.stopPropagation();
-            if (favouritesStore.favouriteIds.includes(ev.id)) {
-              await favouritesStore.removeFromFavourites(ev.id);
-              marker.closePopup();
-              marker.openPopup(); // Refresh popup
-            } else {
-              await favouritesStore.addToFavourites(ev);
-              marker.closePopup();
-              marker.openPopup(); // Refresh popup
+  const marker = markerById.get(ev.id)
+  if (!marker) return
+
+  marker.off('popupopen')
+  marker.on('popupopen', () => {
+    setTimeout(() => {
+      const payBtn = document.getElementById(`pay-${ev.id}`)
+      if (payBtn) {
+        payBtn.onclick = (e) => {
+          e.stopPropagation()
+          router.push({
+            name: 'payments',
+            query: {
+              eventId: ev.id,
+              title: ev.title,
+              date: formatDate(ev.startDate),
+              price: ev.price
             }
-          };
+          })
         }
-        
-        if (payBtn) {
-          payBtn.onclick = (e) => {
-            e.stopPropagation();
-            router.push({
-              name: "payments",
-              query: {
-                eventId: ev.id,
-                title: ev.title,
-                date: formatDate(ev.startDate),
-                price: ev.price,
-              },
-            });
-          };
-        }
-      }, 50);
-    });
-  }
-};
+      }
+    }, 50)
+  })
+}
 
-// Focus on event
 const focusEvent = (ev) => {
-  if (!map) return;
-  const lat = ev.location?.coordinates?.lat || ev.lat
-  const lng = ev.location?.coordinates?.lng || ev.lng
-  map.setView([lat, lng], 14, { animate: true });
-  const marker = markerById.get(ev.id);
-  if (marker) {
-    marker.openPopup();
+  if (!map) return
+  if (!Number.isFinite(ev.lat) || !Number.isFinite(ev.lng)) return
+
+  map.setView([ev.lat, ev.lng], 14, { animate: true })
+  const marker = markerById.get(ev.id)
+  if (marker) marker.openPopup()
+}
+
+const updateMarkers = (eventsToPlot) => {
+  if (!map) return
+
+  markerById.forEach((marker) => map.removeLayer(marker))
+  markerById.clear()
+
+  const validEvents = eventsToPlot.filter((ev) => Number.isFinite(ev.lat) && Number.isFinite(ev.lng))
+
+  validEvents.forEach((ev) => {
+    const marker = L.marker([ev.lat, ev.lng]).addTo(map)
+    markerById.set(ev.id, marker)
+    marker.bindPopup(popupHtml(ev))
+    wirePopupButtons(ev)
+  })
+
+  if (validEvents.length > 0) {
+    const group = L.featureGroup(validEvents.map((ev) => L.marker([ev.lat, ev.lng])))
+    map.fitBounds(group.getBounds(), { padding: [50, 50] })
   }
-};
+}
 
-// Update markers
-const updateMarkers = (newEvents) => {
-  if (!map || !L) return;
-
-  // Remove all existing markers
-  markerById.forEach((marker) => {
-    map.removeLayer(marker);
-  });
-  markerById.clear();
-
-  // Add new markers
-  newEvents.forEach((ev) => {
-    const lat = ev.location?.coordinates?.lat || ev.lat
-    const lng = ev.location?.coordinates?.lng || ev.lng
-    
-    if (lat && lng) {
-      const marker = L.marker([lat, lng]).addTo(map);
-      markerById.set(ev.id, marker);
-
-      marker.bindPopup(popupHtml(ev));
-      wirePopupButtons(ev);
-    }
-  });
-
-  // Fit bounds
-  if (newEvents.length > 0) {
-    const validEvents = newEvents.filter(ev => ev.location?.coordinates?.lat || ev.lat)
-    if (validEvents.length > 0) {
-      const group = L.featureGroup(
-        validEvents.map((ev) => {
-          const lat = ev.location?.coordinates?.lat || ev.lat
-          const lng = ev.location?.coordinates?.lng || ev.lng
-          return L.marker([lat, lng])
-        })
-      );
-      map.fitBounds(group.getBounds(), { padding: [50, 50] });
-    }
-  }
-};
-
-const handleSearch = async () => {
-  await eventStore.searchEvents(query.value)
-  updateMarkers(eventStore.filteredEvents)
+const handleSearch = () => {
+  updateMarkers(filteredEvents.value)
 }
 
 const loadMoreEvents = async () => {
-  page.value++
-  await eventStore.fetchEvents({ 
-    page: page.value,
-    limit: 20,
-    lat: userLatLng.value.lat,
-    lng: userLatLng.value.lng,
-    distance: authStore.user?.preferences?.maxDistance || 50
-  })
-  
-  if (eventStore.events.length === 0) {
-    hasMoreEvents.value = false
-  }
+  const previousCount = normalizedEvents.value.length
+  page.value += 1
+  await eventStore.fetchEvents()
+  hasMoreEvents.value = normalizedEvents.value.length > previousCount
 }
 
-// Watch filtered events
-watch(() => eventStore.filteredEvents, updateMarkers, { deep: true })
+watch(filteredEvents, (newEvents) => {
+  updateMarkers(newEvents)
+}, { deep: true })
 
 onMounted(async () => {
-  L = await loadLeaflet();
-  
-  map = L.map(mapEl.value, { zoomControl: true }).setView(
-    [userLatLng.value.lat, userLatLng.value.lng], 
-    12
-  );
+  map = L.map(mapEl.value, { zoomControl: true }).setView([userLatLng.value.lat, userLatLng.value.lng], 12)
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map)
 
-  // Load events near user location
-  await eventStore.fetchEvents({
-    lat: userLatLng.value.lat,
-    lng: userLatLng.value.lng,
-    distance: authStore.user?.preferences?.maxDistance || 50,
-    page: 1,
-    limit: 50
-  })
-  
-  await favouritesStore.fetchFavourites()
-  updateMarkers(eventStore.events)
-});
+  await eventStore.fetchEvents()
+  updateMarkers(filteredEvents.value)
+})
 
 onBeforeUnmount(() => {
   markerById.forEach((marker) => {
-    if (map) map.removeLayer(marker);
-  });
-  markerById.clear();
+    if (map) map.removeLayer(marker)
+  })
+  markerById.clear()
   if (map) {
-    map.remove();
-    map = null;
+    map.remove()
+    map = null
   }
-});
+})
 </script>
+
 
 <style scoped>
 /* Keep all existing styles from original Map.vue */
@@ -534,8 +621,11 @@ h1 {
 }
 
 .event-emoji {
-  font-size: 24px;
-  line-height: 1;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .event-item-text {

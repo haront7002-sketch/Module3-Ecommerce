@@ -125,7 +125,7 @@
             @click="viewEventDetails(event)"
           >
             <div class="event-time">
-              <span class="time">{{ formatTime(event.startDate) }}</span>
+              <span class="time">{{ formatEventTime(event) }}</span>
             </div>
             <div class="event-content">
               <div class="event-header">
@@ -148,7 +148,7 @@
                 <button class="action-btn like" @click.stop="toggleFavourite(event)">
                   <i class="uil" :class="isFavourite(event.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 </button>
-                <button class="action-btn book" @click.stop="bookEvent(event)">
+                <button class="action-btn book" :disabled="isFreeEvent(event)" @click.stop="bookEvent(event)">
                   Book Now
                 </button>
               </div>
@@ -183,7 +183,7 @@
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
-                <span>{{ formatDate(selectedEvent.startDate) }} at {{ formatTime(selectedEvent.startDate) }}</span>
+                <span>{{ formatDate(selectedEvent.startDate || selectedEvent.date) }} at {{ formatEventTime(selectedEvent) }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-location-point"></i>
@@ -210,7 +210,7 @@
                 <i class="uil" :class="isFavourite(selectedEvent.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 {{ isFavourite(selectedEvent.id) ? 'Remove from Favourites' : 'Add to Favourites' }}
               </button>
-              <button class="modal-btn book" @click="bookEvent(selectedEvent)">
+              <button class="modal-btn book" :disabled="isFreeEvent(selectedEvent)" @click="bookEvent(selectedEvent)">
                 Book Tickets
               </button>
             </div>
@@ -222,7 +222,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 
@@ -236,6 +236,62 @@ const selectedEvent = ref(null)
 const page = ref(1)
 const hasMoreEvents = ref(true)
 const selectedCategories = ref([])
+const selectedDate = ref('')
+const currentDate = ref(new Date())
+const loading = ref(false)
+const fallbackEvents = ref([])
+const categoryNameById = computed(() => {
+  const categories = store.state.categories || []
+  return categories.reduce((acc, category) => {
+    const id = String(category.id ?? category.category_id)
+    const name = category.name ?? category.category_name
+    if (id && name) acc[id] = name
+    return acc
+  }, {})
+})
+
+const defaultExploreEvents = [
+  {
+    id: 'exp-1',
+    title: 'City Rooftop Social',
+    description: 'Meet new people with live DJs and skyline views.',
+    area: 'City Centre',
+    category: 'Social Vibes',
+    price: 140,
+    startDate: '2026-03-20T19:00:00',
+    image_url: ''
+  },
+  {
+    id: 'exp-2',
+    title: 'Cape Food Tasting Walk',
+    description: 'Guided tasting tour across local food spots.',
+    area: 'Woodstock',
+    category: 'Food & Drink',
+    price: 220,
+    startDate: '2026-03-21T13:00:00',
+    image_url: ''
+  },
+  {
+    id: 'exp-3',
+    title: 'Beginner Salsa Night',
+    description: 'Intro dance class followed by social dancing.',
+    area: 'Sea Point',
+    category: 'Wellness & Body',
+    price: 90,
+    startDate: '2026-03-22T18:30:00',
+    image_url: ''
+  },
+  {
+    id: 'exp-4',
+    title: 'Saturday Creative Market',
+    description: 'Artisan stalls, live art, and street food.',
+    area: 'Observatory',
+    category: 'Creative Making',
+    price: 0,
+    startDate: '2026-03-23T10:30:00',
+    image_url: ''
+  }
+]
 
 // Interest categories from preferences
 const interestCategories = [
@@ -256,32 +312,45 @@ const interestCategories = [
   { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
 ]
 
-// Computed properties from Vuex
-const events = computed(() =>
-  (store.state.events || []).map((event) => ({
-    ...event,
-    id: event.id ?? event.event_id,
-    title: event.title ?? event.event_title ?? 'Untitled Event',
-    area: event.area ?? event.location ?? 'Unknown',
-    date: event.date ?? null,
-    time: event.time ?? '',
-    category: event.category ?? event.category_name ?? 'General',
-    image_url: event.image_url ?? ''
-  }))
-)
+const normalizedEvents = computed(() => {
+  const raw = (store.state.events || []).map((event) => {
+    const startDate = event.startDate || event.start_date || null
+    const normalizedDate = event.date || (startDate ? startDate.slice(0, 10) : null)
+    const categoryId = event.category_id ?? event.categoryId
+    const resolvedCategory = categoryNameById.value[String(categoryId)] || event.category_name || event.category || 'General'
+
+    return {
+      ...event,
+      id: event.id ?? event.event_id,
+      title: event.title ?? event.event_title ?? 'Untitled Event',
+      description: event.description ?? '',
+      area: event.area ?? event.location?.area ?? event.location ?? 'Unknown',
+      category: resolvedCategory,
+      image_url: event.image_url ?? '',
+      price: Number(event.price ?? 0),
+      startDate,
+      date: normalizedDate,
+      time: event.time ?? ''
+    }
+  })
+
+  if (raw.length > 0) return raw
+  return fallbackEvents.value
+})
 
 const filteredEvents = computed(() => {
-  let filtered = events.value
-  
-  // Filter by selected date
+  let filtered = normalizedEvents.value
+
   if (selectedDate.value) {
-    filtered = filtered.filter(event => event.date === selectedDate.value)
+    filtered = filtered.filter((event) => {
+      const eventDate = event.date || (event.startDate ? event.startDate.slice(0, 10) : '')
+      return eventDate === selectedDate.value
+    })
   }
-  
-  // Filter by search query
+
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(event => 
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter((event) =>
       String(event.title || '').toLowerCase().includes(query) ||
       String(event.area || '').toLowerCase().includes(query) ||
       String(event.description || '').toLowerCase().includes(query) ||
@@ -289,44 +358,59 @@ const filteredEvents = computed(() => {
     )
   }
 
-   return filtered.sort((a, b) => a.time?.localeCompare(b.time || ''))
+  if (selectedCategories.value.length > 0) {
+    filtered = filtered.filter((event) => selectedCategories.value.includes(event.category))
+  }
+
+  return filtered.sort((a, b) => {
+    const aTime = a.startDate || `${a.date || ''} ${a.time || ''}`
+    const bTime = b.startDate || `${b.date || ''} ${b.time || ''}`
+    return String(aTime).localeCompare(String(bTime))
+  })
+})
+
+const eventsByDate = computed(() => {
+  return normalizedEvents.value.reduce((acc, event) => {
+    const dateKey = event.date || (event.startDate ? event.startDate.slice(0, 10) : null)
+    if (!dateKey) return acc
+    if (!acc[dateKey]) acc[dateKey] = []
+    acc[dateKey].push(event)
+    return acc
+  }, {})
 })
 
 const eventsThisMonth = computed(() => {
   const currentMonth = currentDate.value.getMonth()
   const currentYear = currentDate.value.getFullYear()
-  return events.value.filter(event => {
-    if (!event.date) return false
-    const eventDate = new Date(event.date)
-    return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+
+  return normalizedEvents.value.filter((event) => {
+    const dateSource = event.startDate || event.date
+    if (!dateSource) return false
+    const d = new Date(dateSource)
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
   }).length
 })
-// Computed
-const currentYear = computed(() => eventStore.currentMonth.getFullYear())
-const currentMonthName = computed(() => {
-  return eventStore.currentMonth.toLocaleString('default', { month: 'long' })
-})
 
-const userLocation = computed(() => {
-  return authStore.user?.location || 'Cape Town'
-})
+const currentYear = computed(() => currentDate.value.getFullYear())
+const currentMonthName = computed(() => currentDate.value.toLocaleString('default', { month: 'long' }))
+const userLocation = computed(() => store.state.me?.location || 'Cape Town')
 
 const selectedDateLabel = computed(() => {
-  if (!eventStore.selectedDate) return 'All Events'
+  if (!selectedDate.value) return 'All Events'
   const options = { weekday: 'long', month: 'long', day: 'numeric' }
-  return new Date(eventStore.selectedDate).toLocaleDateString(undefined, options)
+  return new Date(selectedDate.value).toLocaleDateString(undefined, options)
 })
+
+const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const calendarDays = computed(() => {
   const year = currentYear.value
-  const month = eventStore.currentMonth.getMonth()
-  
+  const month = currentDate.value.getMonth()
+
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  
   const days = []
-  
-  // Previous month days
+
   const firstDayOfWeek = firstDay.getDay()
   for (let i = firstDayOfWeek; i > 0; i--) {
     const date = new Date(year, month, 1 - i)
@@ -336,8 +420,7 @@ const calendarDays = computed(() => {
       isCurrentMonth: false
     })
   }
-  
-  // Current month days
+
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const date = new Date(year, month, i)
     days.push({
@@ -346,8 +429,7 @@ const calendarDays = computed(() => {
       isCurrentMonth: true
     })
   }
-  
-  // Next month days (to fill 6 rows)
+
   const remainingDays = 42 - days.length
   for (let i = 1; i <= remainingDays; i++) {
     const date = new Date(year, month + 1, i)
@@ -357,11 +439,31 @@ const calendarDays = computed(() => {
       isCurrentMonth: false
     })
   }
-  
+
   return days
 })
 
-// Methods
+const eventStore = {
+  get loading() {
+    return loading.value
+  },
+  get filteredEvents() {
+    return filteredEvents.value
+  },
+  get selectedDate() {
+    return selectedDate.value
+  },
+  get eventsThisMonth() {
+    return eventsThisMonth.value
+  },
+  get currentMonth() {
+    return currentDate.value
+  },
+  get eventsByDate() {
+    return eventsByDate.value
+  }
+}
+
 const formatDateForComparison = (date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -371,115 +473,95 @@ const formatDateForComparison = (date) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return ''
-  const options = { year: 'numeric', month: 'long', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
+  return new Date(dateString).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-const formatTime = (dateString) => {
-  if (!dateString) return ''
-  const options = { hour: '2-digit', minute: '2-digit' }
-  return new Date(dateString).toLocaleTimeString(undefined, options)
-}
+const formatTime = (value) => {
+  if (!value) return ''
 
-const isToday = (dateString) => {
-  const today = formatDateForComparison(new Date())
-  return dateString === today
-}
+  // Handles values like "18:30" / "18:30:00"
+  if (typeof value === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+    const [h, m] = value.split(':')
+    const d = new Date()
+    d.setHours(Number(h), Number(m), 0, 0)
+    return d.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
 
-const hasEventsOnDate = (dateString) => {
-  return eventStore.eventsByDate[new Date(dateString).toDateString()]?.length > 0
-}
-
-const selectDate = (date) => {
-  eventStore.setDateFilter(date)
-}
-
-const previousMonth = () => {
-  eventStore.previousMonth()
-  fetchEventsForMonth()
-}
-
-const nextMonth = () => {
-  eventStore.nextMonth()
-  fetchEventsForMonth()
-}
-
-const fetchEventsForMonth = async () => {
-  const year = currentYear.value
-  const month = String(eventStore.currentMonth.getMonth() + 1).padStart(2, '0')
-  const startDate = `${year}-${month}-01`
-  const endDate = `${year}-${month}-${new Date(year, eventStore.currentMonth.getMonth() + 1, 0).getDate()}`
-  
-  await eventStore.fetchEvents({
-    startDate,
-    endDate,
-    page: 1,
-    limit: 50
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
   })
 }
 
-const handleSearch = async () => {
-  await eventStore.searchEvents(searchQuery.value)
+const formatEventTime = (event) => {
+  if (!event) return ''
+  const candidate = event.startDate || event.start_date || (event.date && event.time ? `${event.date}T${event.time}` : event.time)
+  return formatTime(candidate)
 }
+
+const isToday = (dateString) => dateString === formatDateForComparison(new Date())
+const hasEventsOnDate = (dateString) => (eventStore.eventsByDate[dateString] || []).length > 0
+const selectDate = (date) => { selectedDate.value = date }
+const previousMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
+const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
+const handleSearch = () => {}
 
 const toggleCategory = (category) => {
   const index = selectedCategories.value.indexOf(category)
-  if (index === -1) {
-    selectedCategories.value.push(category)
-  } else {
-    selectedCategories.value.splice(index, 1)
-  }
+  if (index === -1) selectedCategories.value.push(category)
+  else selectedCategories.value.splice(index, 1)
 }
 
-const applyFilters = () => {
-  eventStore.setCategoryFilter(selectedCategories.value)
-  showFilters.value = false
-}
+const applyFilters = () => { showFilters.value = false }
 
 const clearFilters = () => {
   selectedCategories.value = []
-  eventStore.clearFilters()
   searchQuery.value = ''
+  selectedDate.value = ''
   showFilters.value = false
 }
 
-const viewEventDetails = (event) => {
-  selectedEvent.value = event
-}
+const viewEventDetails = (event) => { selectedEvent.value = event }
 
-const likeEvent = async (event) => {
-   try {
-    await store.dispatch('addFavourite', event)
-    showNotification('Added to favourites!')
-  } catch (error) {
-    if (error.message === 'User not authenticated') {
-      showNotification('Please log in to add favourites', 'error')
+const favouriteIds = computed(() => (store.state.favourites || []).map((f) => String(f.id ?? f.event_id)))
+const isFavourite = (eventId) => favouriteIds.value.includes(String(eventId))
+
+const toggleFavourite = async (event) => {
+  try {
+    if (isFavourite(event.id)) {
+      await store.dispatch('removeFavourite', event.id)
+      showNotification('Removed from favourites')
     } else {
-      showNotification('Error adding to favourites', 'error')
+      await store.dispatch('addFavourite', event)
+      showNotification('Added to favourites!')
     }
+  } catch {
+    showNotification('Error updating favourites', 'error')
   }
 }
-  // Get existing favourites
-  // const favourites = JSON.parse(localStorage.getItem('favourites') || '[]')
-  
-  // // Check if already in favourites
-  // if (!favourites.some(fav => fav.id === event.id)) {
-  //   favourites.push(event)
-  //   localStorage.setItem('favourites', JSON.stringify(favourites))
 
-  const bookEvent = (event) => {
+const isFreeEvent = (event) => Number(event?.price ?? 0) === 0
+
+const bookEvent = (event) => {
+  if (isFreeEvent(event)) return
   router.push({
     name: 'payments',
     query: {
       eventId: event.id,
       title: event.title,
-      date: formatDate(event.date) + ' • ' + event.time,
+      date: `${formatDate(event.startDate || event.date)} • ${formatEventTime(event)}`,
       price: event.price
     }
   })
 }
-    
-    // Show notification
+
 const showNotification = (message, type = 'success') => {
   const notification = document.createElement('div')
   notification.className = 'notification'
@@ -496,46 +578,55 @@ const showNotification = (message, type = 'success') => {
     z-index: 1000;
     animation: slideIn 0.3s ease;
   `
-    document.body.appendChild(notification)
-    
-    setTimeout(() => {
-      notification.style.animation = 'slideOut 0.3s ease'
-      setTimeout(() => {
-        document.body.removeChild(notification)
-      }, 300)
-    }, 2000)
-  }
 
-  // Load events from API
+  document.body.appendChild(notification)
+
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease'
+    setTimeout(() => document.body.removeChild(notification), 300)
+  }, 2000)
+}
+
 const loadEvents = async () => {
   loading.value = true
   try {
     await store.dispatch('getEvents')
+    if ((store.state.events || []).length === 0) {
+      fallbackEvents.value = defaultExploreEvents
+    } else {
+      fallbackEvents.value = []
+    }
   } catch (error) {
     console.error('Error loading events:', error)
+    fallbackEvents.value = defaultExploreEvents
   } finally {
     loading.value = false
   }
 }
 
-// Load user favourites if authenticated
 const loadFavourites = async () => {
-  if (store.state.isAuthenticated) {
-    try {
-         await store.dispatch('fetchFavourites')
-    } catch (error) {
-      console.error('Error loading favourites:', error)
-    }
+  try {
+    await store.dispatch('fetchFavourites')
+  } catch (error) {
+    console.error('Error loading favourites:', error)
   }
 }
 
-// Load user preferences
+const loadMoreEvents = async () => {
+  const previousCount = normalizedEvents.value.length
+  page.value += 1
+  await loadEvents()
+  hasMoreEvents.value = normalizedEvents.value.length > previousCount
+}
+
 onMounted(() => {
   selectedDate.value = formatDateForComparison(new Date())
+  store.dispatch('getCategories')
   loadEvents()
   loadFavourites()
 })
 </script>
+
 
 <style scoped>
 /* Keep all the existing styles from original Explore.vue */
@@ -1038,6 +1129,14 @@ h1 {
   box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
 }
 
+.action-btn.book:disabled {
+  background: #9e9e9e;
+  color: #f1f1f1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 .loading-state {
   text-align: center;
   padding: 60px 20px;
@@ -1269,6 +1368,14 @@ h1 {
   background: #45a049;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
+}
+
+.modal-btn.book:disabled {
+  background: #9e9e9e;
+  color: #f1f1f1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .slide-enter-active,

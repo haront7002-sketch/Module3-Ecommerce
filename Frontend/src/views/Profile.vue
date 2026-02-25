@@ -6,7 +6,7 @@
         <!-- Profile Info -->
         <div class="profile-info">
           <div v-if="!isEditing" class="display-mode">
-            <h1>{{ user.name || 'Your Name' }}</h1>
+            <h1>{{ displayName }}</h1>
             <p class="username">@{{ user.username || user.email?.split('@')[0] || 'username' }}</p>
           </div>
           
@@ -57,7 +57,7 @@
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Age:</span>
-                <span class="info-value">{{ user.age || 'Not set' }}</span>
+                <span class="info-value">{{ displayAge }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Gender:</span>
@@ -65,7 +65,7 @@
               </div>
               <div class="info-item">
                 <span class="info-label">Location:</span>
-                <span class="info-value">{{ user.location || 'Not set' }}</span>
+                <span class="info-value">{{ displayLocation }}</span>
               </div>
             </div>
           </div>
@@ -149,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -162,6 +162,38 @@ const customDistanceValue = ref(50)
 const user = ref({})
 const userInterests = ref([])
 const userDistance = ref(50)
+
+const calculateAge = (birthDate) => {
+  if (!birthDate) return null
+  const today = new Date()
+  const birth = new Date(birthDate)
+  if (Number.isNaN(birth.getTime())) return null
+
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  return age >= 0 ? age : null
+}
+
+const displayAge = computed(() => {
+  const ageFromBirthDate = calculateAge(user.value?.birthDate)
+  if (ageFromBirthDate !== null) return ageFromBirthDate
+  return user.value?.age || 'Not set'
+})
+
+const displayName = computed(() => {
+  if (user.value?.name) return user.value.name
+  const first = (user.value?.user_name || '').trim()
+  const last = (user.value?.user_surname || '').trim()
+  const fullName = `${first} ${last}`.trim()
+  return fullName || 'Your Name'
+})
+
+const displayLocation = computed(() => {
+  return user.value?.location || user.value?.area || 'Not set'
+})
 
 // Updated interests with emojis
 const availableInterests = [
@@ -195,7 +227,6 @@ const distanceOptions = [
 const editForm = reactive({
   name: '',
   username: '',
-  age: '',
   gender: '',
   location: ''
 })
@@ -215,11 +246,10 @@ const loadUserData = () => {
     user.value = parsed
     
     // Set edit form values
-    editForm.name = parsed.name || ''
+    editForm.name = parsed.name || `${parsed.user_name || ''} ${parsed.user_surname || ''}`.trim()
     editForm.username = parsed.username || parsed.email?.split('@')[0] || ''
-    editForm.age = parsed.age || ''
     editForm.gender = parsed.gender || ''
-    editForm.location = parsed.location || ''
+    editForm.location = parsed.location || parsed.area || ''
   }
   
   if (preferences) {
@@ -240,11 +270,12 @@ const saveProfile = () => {
   const finalDistance = userDistance.value === 'custom' ? customDistanceValue.value : userDistance.value
   
   // Update user data
+  const computedAge = calculateAge(user.value?.birthDate)
   const updatedUser = {
     ...user.value,
     name: editForm.name,
     username: editForm.username,
-    age: editForm.age,
+    age: computedAge ?? user.value?.age ?? null,
     gender: editForm.gender,
     location: editForm.location,
     interests: userInterests.value,
@@ -677,11 +708,13 @@ const toggleDistanceUnit = () => {
   background: linear-gradient(90deg, #EEAECA, #4caf50);
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
   margin-bottom: 15px;
 }
 
 .distance-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
