@@ -175,6 +175,25 @@
               <i class="uil uil-exclamation-circle"></i>
               Payment failed. Please try again.
             </div>
+
+            <div v-if="status === 'success' && ticket" class="ticket-card">
+              <div class="ticket-header">
+                <h3>Your Ticket</h3>
+                <span>#{{ ticket.reference }}</span>
+              </div>
+              <div class="ticket-body">
+                <div class="ticket-info">
+                  <p><strong>Event:</strong> {{ ticket.title }}</p>
+                  <p><strong>Date:</strong> {{ ticket.date }}</p>
+                  <p><strong>Qty:</strong> {{ ticket.quantity }}</p>
+                  <p><strong>Total:</strong> R {{ ticket.total }}</p>
+                </div>
+                <img v-if="qrDataUrl" :src="qrDataUrl" alt="Ticket QR code" class="ticket-qr">
+              </div>
+              <button class="download-ticket-btn" @click="downloadTicket">
+                Download Ticket
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -185,6 +204,7 @@
 <script setup>
 import { computed, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
+import QRCode from "qrcode";
 
 const route = useRoute();
 
@@ -211,6 +231,8 @@ const processing = ref(false);
 
 const status = ref("");
 const reference = ref("");
+const ticket = ref(null);
+const qrDataUrl = ref("");
 
 const banner = reactive({
   message: "",
@@ -243,10 +265,88 @@ function makeRef() {
   return `PAY-${code}`;
 }
 
+async function createTicketWithQr() {
+  const qrPayload = JSON.stringify({
+    reference: reference.value,
+    eventId: order.value.eventId,
+    title: order.value.title,
+    quantity: qty.value,
+    total: total.value
+  });
+
+  qrDataUrl.value = await QRCode.toDataURL(qrPayload, {
+    width: 260,
+    margin: 1
+  });
+
+  ticket.value = {
+    reference: reference.value,
+    eventId: order.value.eventId,
+    title: order.value.title,
+    date: order.value.date,
+    quantity: qty.value,
+    total: total.value
+  };
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function downloadTicket() {
+  if (!ticket.value || !qrDataUrl.value) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1100;
+  canvas.height = 620;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#0f172a";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "700 52px Arial";
+  ctx.fillText("South of Somewhere Ticket", 60, 95);
+
+  ctx.font = "600 30px Arial";
+  ctx.fillText(`Ref: ${ticket.value.reference}`, 60, 155);
+
+  ctx.font = "500 28px Arial";
+  ctx.fillText(`Event: ${ticket.value.title}`, 60, 230);
+  ctx.fillText(`Date: ${ticket.value.date}`, 60, 280);
+  ctx.fillText(`Event ID: ${ticket.value.eventId}`, 60, 330);
+  ctx.fillText(`Quantity: ${ticket.value.quantity}`, 60, 380);
+  ctx.fillText(`Total Paid: R ${ticket.value.total}`, 60, 430);
+
+  const qrImage = await loadImage(qrDataUrl.value);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(760, 160, 280, 280);
+  ctx.drawImage(qrImage, 770, 170, 260, 260);
+
+  ctx.font = "400 20px Arial";
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillText("Present this QR at entry", 760, 475);
+
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = `${ticket.value.reference}-ticket.png`;
+  link.click();
+}
+
 async function pay() {
   submitted.value = true;
   status.value = "";
   reference.value = "";
+  ticket.value = null;
+  qrDataUrl.value = "";
   banner.message = "";
 
   if (!customer.name || !validEmail.value || !accepted.value) {
@@ -259,6 +359,7 @@ async function pay() {
   try {
     await new Promise((r) => setTimeout(r, 1500));
     reference.value = makeRef();
+    await createTicketWithQr();
     status.value = "success";
     showBanner("Payment completed successfully!", "success");
   } catch (err) {
@@ -758,6 +859,65 @@ h1 {
   margin: 5px 0 0;
   font-size: 12px;
   color: rgba(255,255,255,0.8);
+}
+
+.ticket-card {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.ticket-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.ticket-body {
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ticket-info p {
+  margin: 0 0 8px;
+  color: rgba(255,255,255,0.95);
+  font-size: 13px;
+}
+
+.ticket-qr {
+  width: 140px;
+  height: 140px;
+  border-radius: 10px;
+  background: white;
+  padding: 6px;
+}
+
+.download-ticket-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.download-ticket-btn:hover {
+  filter: brightness(1.06);
 }
 
 /* Responsive */
