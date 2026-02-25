@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/haront7002-sketch/Module3-Ecommerce/issues"
   },
-  "homepage": "https://github.com/haront7002-sketch/Module3-Ecommerce#readme"
+  "homepage": "https://github.com/haront7002-sketch/Module3-Ecommerce#readme",
+  "dependencies": {
+    "vuex": "^4.1.0"
+  }
 }
