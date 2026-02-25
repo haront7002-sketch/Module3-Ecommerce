@@ -1,64 +1,140 @@
-<script setup>
-import { RouterView, useRoute, useRouter } from 'vue-router'
-import { computed } from 'vue'
-import { useStore } from 'vuex'
+<template>
+  <div id="app">
+    <!-- Welcome Animation (shown after login/signup) -->
+    <WelcomeAnimation 
+      v-if="showWelcomeAnimation" 
+      @completed="onWelcomeCompleted"
+    />
+    
+    <!-- Goodbye Animation (shown after logout) -->
+    <GoodbyeAnimation 
+      v-if="showGoodbyeAnimation" 
+      @completed="onGoodbyeCompleted"
+    />
+    
+    <!-- Main App Content (hidden during animations) -->
+    <div v-if="!showWelcomeAnimation && !showGoodbyeAnimation" class="main-app">
+      <!-- Show header only when authenticated -->
+      <header v-if="isAuthenticated">
+        <div class="wrapper">
+          <nav class="main-nav">
+            <RouterLink to="/" class="nav-link" active-class="active">
+              <i class="fas fa-home"></i> Home
+            </RouterLink>
+            <RouterLink to="/explore" class="nav-link" active-class="active">
+              <i class="fas fa-compass"></i> Explore
+            </RouterLink>
+            <RouterLink to="/map" class="nav-link" active-class="active">
+              <i class="fas fa-map"></i> Map
+            </RouterLink>
+            <RouterLink to="/favourites" class="nav-link" active-class="active">
+              <i class="fas fa-heart"></i> Favourites
+            </RouterLink>
+            <RouterLink to="/payments" class="nav-link" active-class="active">
+              <i class="fas fa-credit-card"></i> Payment
+            </RouterLink>
+            <RouterLink to="/profile" class="nav-link" active-class="active">
+              <i class="fas fa-user"></i> Profile
+            </RouterLink>
+            <button @click="handleLogout" class="nav-link logout-btn">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+          </nav>
+        </div>
+      </header>
+      
+      <main>
+        <!-- Show LoginSignup when not authenticated, otherwise show the routed component -->
+        <RouterView v-if="isAuthenticated" />
+        <LoginSignup v-else />
+      </main>
+    </div>
+  </div>
+</template>
+
+<script>
+import { RouterView, RouterLink } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from './stores/auth'
 import LoginSignup from './components/LoginSignup.vue'
+import WelcomeAnimation from './components/WelcomeAnimation.vue'
+import GoodbyeAnimation from './components/GoodbyeAnimation.vue'
 
-const route = useRoute()
-const router = useRouter()
-const store = useStore()
+export default {
+  name: 'App',
+  components: {
+    LoginSignup,
+    WelcomeAnimation,
+    GoodbyeAnimation
+  },
+  setup() {
+    const router = useRouter()
+    const authStore = useAuthStore()
+    const { isAuthenticated, hasPreferences } = storeToRefs(authStore)
+    
+    // Animation states
+    const showWelcomeAnimation = ref(false)
+    const showGoodbyeAnimation = ref(false)
 
-const isAuthenticated = computed(() => store.state.isAuthenticated)
-const hasPreferences = computed(() => {
-  const hasStoredPreferences = !!localStorage.getItem('preferences')
-  return hasStoredPreferences || !!store.state.me?.profileComplete
-})
+    // Check for just logged in flag on mount
+    onMounted(() => {
+      const justLoggedIn = sessionStorage.getItem('justLoggedIn')
+      if (justLoggedIn === 'true') {
+        showWelcomeAnimation.value = true
+        sessionStorage.removeItem('justLoggedIn')
+      }
+    })
 
-// Logout function
-const logout = () => {
-  store.dispatch('logout')
-  router.push('/')
+    // Watch for authentication changes
+    watch(isAuthenticated, (newVal) => {
+      if (!newVal) {
+        // If not authenticated, ensure we're showing login
+        router.push('/')
+      }
+    })
+
+    // Handle logout with animation
+    const handleLogout = () => {
+      showGoodbyeAnimation.value = true
+    }
+
+    // Welcome animation completed
+    const onWelcomeCompleted = () => {
+      showWelcomeAnimation.value = false
+      // Navigate based on user state
+      if (!hasPreferences.value) {
+        router.push('/preferences')
+      } else {
+        router.push('/')
+      }
+    }
+
+    // Goodbye animation completed
+    const onGoodbyeCompleted = () => {
+      authStore.logout()
+      showGoodbyeAnimation.value = false
+      // Force a hard reload to reset everything
+      window.location.href = '/'
+    }
+
+    return {
+      isAuthenticated,
+      hasPreferences,
+      showWelcomeAnimation,
+      showGoodbyeAnimation,
+      handleLogout,
+      onWelcomeCompleted,
+      onGoodbyeCompleted
+    }
+  }
 }
 </script>
 
-<template>
-  <header>
-    <div class="wrapper">
-      <!-- Navigation menu - only show when authenticated and preferences completed -->
-      <nav v-if="isAuthenticated && hasPreferences" class="main-nav">
-        <router-link to="/" class="nav-link" :class="{ active: route.path === '/' }">
-          <i class="uil uil-estate"></i> Home
-        </router-link>
-        <router-link to="/explore" class="nav-link" :class="{ active: route.path === '/explore' }">
-          <i class="uil uil-calendar-alt"></i> Explore
-        </router-link>
-        <router-link to="/map" class="nav-link" :class="{ active: route.path === '/map' }">
-          <i class="uil uil-map-marker"></i> Map
-        </router-link>
-        <router-link to="/favourites" class="nav-link" :class="{ active: route.path === '/favourites' }">
-          <i class="uil uil-heart"></i> Favourites
-        </router-link>
-        <router-link to="/payments" class="nav-link" :class="{ active: route.path === '/payments' }">
-          <i class="uil uil-credit-card"></i> Payment
-        </router-link>
-        <router-link to="/profile" class="nav-link" :class="{ active: route.path === '/profile' }">
-          <i class="uil uil-user"></i> Profile
-        </router-link>
-        <button @click="logout" class="nav-link logout-btn">
-          <i class="uil uil-signout"></i> Logout
-        </button>
-      </nav>
-    </div>
-  </header>
-  
-  <!-- Show LoginSignup if not authenticated -->
-  <LoginSignup v-if="!isAuthenticated" />
-  
-  <!-- Show the routed component if authenticated -->
-  <RouterView v-else :key="$route.fullPath" />
-</template>
+<style>
+@import './style.css';
 
-<style scoped>
 header {
   line-height: 1.5;
   max-height: 100vh;
@@ -139,64 +215,13 @@ header {
   }
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-
 #app {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+main {
+  min-height: calc(100vh - 100px);
 }
 </style>

@@ -6,13 +6,13 @@
         <div class="logo">SOS</div>
         <div>
           <h1>Explore Events</h1>
-          <p class="subtitle">Discover what's happening in Cape Town</p>
+          <p class="subtitle">Discover what's happening in {{ userLocation || 'Cape Town' }}</p>
         </div>
       </div>
 
       <div class="stats">
         <span class="stat-item">
-          <i class="uil uil-calendar-alt"></i> {{ eventsThisMonth }} this month
+          <i class="uil uil-calendar-alt"></i> {{ eventStore.eventsThisMonth }} this month
         </span>
       </div>
     </div>
@@ -26,6 +26,7 @@
           type="text" 
           class="search-input" 
           placeholder="Search events by title, location, or category..."
+          @input="handleSearch"
         >
       </div>
       <button class="filter-btn" @click="showFilters = !showFilters">
@@ -50,6 +51,15 @@
               <span>{{ category.name }}</span>
             </button>
           </div>
+        </div>
+        
+        <div class="filter-actions">
+          <button class="filter-action-btn clear" @click="clearFilters">
+            Clear All
+          </button>
+          <button class="filter-action-btn apply" @click="applyFilters">
+            Apply Filters
+          </button>
         </div>
       </div>
     </transition>
@@ -79,7 +89,7 @@
               'other-month': !day.isCurrentMonth,
               'today': isToday(day.date),
               'has-events': hasEventsOnDate(day.date),
-              'selected': selectedDate === day.date
+              'selected': eventStore.selectedDate === day.date
             }"
             @click="selectDate(day.date)"
           >
@@ -92,16 +102,16 @@
       <!-- Events List -->
       <div class="events-panel glass-card">
         <div class="events-header">
-          <h2>{{ selectedDate ? formatDateHeader(selectedDate) : 'Select a date' }}</h2>
-          <span class="event-count">{{ filteredEvents.length }} events</span>
+          <h2>{{ selectedDateLabel }}</h2>
+          <span class="event-count">{{ eventStore.filteredEvents.length }} events</span>
         </div>
 
-        <div v-if="loading" class="loading-state">
+        <div v-if="eventStore.loading" class="loading-state">
           <div class="loader"></div>
           <p>Loading events...</p>
         </div>
 
-        <div v-else-if="filteredEvents.length === 0" class="empty-state">
+        <div v-else-if="eventStore.filteredEvents.length === 0" class="empty-state">
           <i class="uil uil-calendar-slash"></i>
           <h3>No events found</h3>
           <p>Try selecting a different date or adjusting your filters</p>
@@ -109,13 +119,13 @@
 
         <div v-else class="events-list">
           <div 
-            v-for="event in filteredEvents" 
+            v-for="event in eventStore.filteredEvents" 
             :key="event.id"
             class="event-card glass-card"
             @click="viewEventDetails(event)"
           >
             <div class="event-time">
-              <span class="time">{{ formatTime(event.time) }}</span>
+              <span class="time">{{ formatTime(event.startDate) }}</span>
             </div>
             <div class="event-content">
               <div class="event-header">
@@ -125,7 +135,7 @@
               <p class="event-description">{{ event.description }}</p>
               <div class="event-meta">
                 <span class="meta-item">
-                  <i class="uil uil-location-point"></i> {{ event.area }}
+                  <i class="uil uil-location-point"></i> {{ event.location?.area || event.area }}
                 </span>
                 <span class="meta-item">
                   <i class="uil uil-tag"></i> {{ event.category }}
@@ -135,8 +145,8 @@
                 </span>
               </div>
               <div class="event-actions">
-                <button class="action-btn like" @click.stop="likeEvent(event)">
-                  <i class="uil uil-heart"></i>
+                <button class="action-btn like" @click.stop="toggleFavourite(event)">
+                  <i class="uil" :class="isFavourite(event.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 </button>
                 <button class="action-btn book" @click.stop="bookEvent(event)">
                   Book Now
@@ -144,6 +154,14 @@
               </div>
             </div>
           </div>
+        </div>
+        
+        <!-- Load More Button -->
+        <div v-if="hasMoreEvents" class="load-more">
+          <button @click="loadMoreEvents" class="load-more-btn" :disabled="eventStore.loading">
+            <span v-if="eventStore.loading" class="loader-small"></span>
+            <span v-else>Load More Events</span>
+          </button>
         </div>
       </div>
     </div>
@@ -165,11 +183,11 @@
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
-                <span>{{ formatDate(selectedEvent.date) }} at {{ formatTime(selectedEvent.time) }}</span>
+                <span>{{ formatDate(selectedEvent.startDate) }} at {{ formatTime(selectedEvent.startDate) }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-location-point"></i>
-                <span>{{ selectedEvent.location }}, {{ selectedEvent.area }}</span>
+                <span>{{ selectedEvent.location?.address }}, {{ selectedEvent.location?.area }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-tag"></i>
@@ -179,13 +197,18 @@
                 <i class="uil uil-dollar-alt"></i>
                 <span>R {{ selectedEvent.price }} per ticket</span>
               </div>
+              <div class="info-row">
+                <i class="uil uil-users-alt"></i>
+                <span>{{ selectedEvent.availableSpots }} spots left</span>
+              </div>
             </div>
 
             <p class="modal-description">{{ selectedEvent.description }}</p>
 
             <div class="modal-actions">
-              <button class="modal-btn like" @click="likeEvent(selectedEvent)">
-                <i class="uil uil-heart"></i> Add to Favourites
+              <button class="modal-btn like" @click="toggleFavourite(selectedEvent)">
+                <i class="uil" :class="isFavourite(selectedEvent.id) ? 'uil-heart-break' : 'uil-heart'"></i>
+                {{ isFavourite(selectedEvent.id) ? 'Remove from Favourites' : 'Add to Favourites' }}
               </button>
               <button class="modal-btn book" @click="bookEvent(selectedEvent)">
                 Book Tickets
@@ -199,7 +222,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 
@@ -209,15 +232,9 @@ const store = useStore()
 // State
 const searchQuery = ref('')
 const showFilters = ref(false)
-const selectedDate = ref(null)
 const selectedEvent = ref(null)
-const loading = ref(false)
-
-// Date state
-const currentDate = ref(new Date())
-const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-// Selected categories for filtering
+const page = ref(1)
+const hasMoreEvents = ref(true)
 const selectedCategories = ref([])
 
 // Interest categories from preferences
@@ -285,14 +302,24 @@ const eventsThisMonth = computed(() => {
   }).length
 })
 // Computed
-const currentYear = computed(() => currentDate.value.getFullYear())
+const currentYear = computed(() => eventStore.currentMonth.getFullYear())
 const currentMonthName = computed(() => {
-  return currentDate.value.toLocaleString('default', { month: 'long' })
+  return eventStore.currentMonth.toLocaleString('default', { month: 'long' })
+})
+
+const userLocation = computed(() => {
+  return authStore.user?.location || 'Cape Town'
+})
+
+const selectedDateLabel = computed(() => {
+  if (!eventStore.selectedDate) return 'All Events'
+  const options = { weekday: 'long', month: 'long', day: 'numeric' }
+  return new Date(eventStore.selectedDate).toLocaleDateString(undefined, options)
 })
 
 const calendarDays = computed(() => {
   const year = currentYear.value
-  const month = currentDate.value.getMonth()
+  const month = eventStore.currentMonth.getMonth()
   
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
@@ -342,44 +369,57 @@ const formatDateForComparison = (date) => {
   return `${year}-${month}-${day}`
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const options = { year: 'numeric', month: 'long', day: 'numeric' }
+  return new Date(dateString).toLocaleDateString(undefined, options)
+}
+
+const formatTime = (dateString) => {
+  if (!dateString) return ''
+  const options = { hour: '2-digit', minute: '2-digit' }
+  return new Date(dateString).toLocaleTimeString(undefined, options)
+}
+
 const isToday = (dateString) => {
   const today = formatDateForComparison(new Date())
   return dateString === today
 }
 
 const hasEventsOnDate = (dateString) => {
-  return events.value.some(event => event.date === dateString)
+  return eventStore.eventsByDate[new Date(dateString).toDateString()]?.length > 0
 }
 
 const selectDate = (date) => {
-  selectedDate.value = date
-  loading.value = true
-  // Simulate loading
-  setTimeout(() => {
-    loading.value = false
-  }, 500)
+  eventStore.setDateFilter(date)
 }
 
 const previousMonth = () => {
-  currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() - 1))
+  eventStore.previousMonth()
+  fetchEventsForMonth()
 }
 
 const nextMonth = () => {
-  currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() + 1))
+  eventStore.nextMonth()
+  fetchEventsForMonth()
 }
 
-const formatDate = (dateString) => {
-  const options = { year: 'numeric', month: 'long', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
+const fetchEventsForMonth = async () => {
+  const year = currentYear.value
+  const month = String(eventStore.currentMonth.getMonth() + 1).padStart(2, '0')
+  const startDate = `${year}-${month}-01`
+  const endDate = `${year}-${month}-${new Date(year, eventStore.currentMonth.getMonth() + 1, 0).getDate()}`
+  
+  await eventStore.fetchEvents({
+    startDate,
+    endDate,
+    page: 1,
+    limit: 50
+  })
 }
 
-const formatDateHeader = (dateString) => {
-  const options = { weekday: 'long', month: 'long', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
-}
-
-const formatTime = (timeString) => {
-  return timeString
+const handleSearch = async () => {
+  await eventStore.searchEvents(searchQuery.value)
 }
 
 const toggleCategory = (category) => {
@@ -389,6 +429,18 @@ const toggleCategory = (category) => {
   } else {
     selectedCategories.value.splice(index, 1)
   }
+}
+
+const applyFilters = () => {
+  eventStore.setCategoryFilter(selectedCategories.value)
+  showFilters.value = false
+}
+
+const clearFilters = () => {
+  selectedCategories.value = []
+  eventStore.clearFilters()
+  searchQuery.value = ''
+  showFilters.value = false
 }
 
 const viewEventDetails = (event) => {
@@ -486,13 +538,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Keep all the existing styles from original Explore.vue */
 .explore-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
   padding: 20px;
 }
 
-/* Glass Card Effect */
 .glass-card {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -501,7 +553,6 @@ onMounted(() => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Header */
 .explore-header {
   display: flex;
   justify-content: space-between;
@@ -559,7 +610,6 @@ h1 {
   font-weight: 500;
 }
 
-/* Search Section */
 .search-section {
   display: flex;
   gap: 15px;
@@ -622,7 +672,6 @@ h1 {
   transform: translateY(-2px);
 }
 
-/* Filter Panel */
 .filter-panel {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -642,6 +691,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-bottom: 20px;
 }
 
 .filter-chip {
@@ -669,7 +719,43 @@ h1 {
   border-color: transparent;
 }
 
-/* Main Layout */
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.filter-action-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-action-btn.clear {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.filter-action-btn.clear:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.filter-action-btn.apply {
+  background: #4caf50;
+  color: white;
+}
+
+.filter-action-btn.apply:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
 .explore-main {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -683,7 +769,6 @@ h1 {
   }
 }
 
-/* Calendar Panel */
 .calendar-panel {
   padding: 20px;
   height: fit-content;
@@ -780,7 +865,6 @@ h1 {
   margin-top: 2px;
 }
 
-/* Events Panel */
 .events-panel {
   padding: 20px;
 }
@@ -810,7 +894,6 @@ h1 {
   font-weight: 500;
 }
 
-/* Events List */
 .events-list {
   display: flex;
   flex-direction: column;
@@ -955,7 +1038,6 @@ h1 {
   box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
 }
 
-/* Loading State */
 .loading-state {
   text-align: center;
   padding: 60px 20px;
@@ -972,12 +1054,21 @@ h1 {
   margin: 0 auto 20px;
 }
 
+.loader-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* Empty State */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -999,7 +1090,33 @@ h1 {
   color: rgba(255,255,255,0.8);
 }
 
-/* Modal */
+.load-more {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.load-more-btn {
+  padding: 12px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1154,7 +1271,6 @@ h1 {
   box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
 }
 
-/* Transitions */
 .slide-enter-active,
 .slide-leave-active {
   transition: all 0.3s ease;

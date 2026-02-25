@@ -1,167 +1,112 @@
 <template>
-    <div class="section">
-        <div class="container">
-            <div class="row full-height justify-content-center">
-                <div class="col-12 text-center align-self-center py-5">
-                    <div class="section pb-5 pt-5 pt-sm-2 text-center">
-                        <h6 class="mb-0 pb-3">
-                            <span>Log In</span>
-                            <span>Sign Up</span>
-                        </h6>
-                        
+  <div class="section">
+    <div class="container">
+      <div class="row full-height justify-content-center">
+        <div class="col-12 text-center align-self-center py-5">
+          <div class="section pb-5 pt-5 pt-sm-2 text-center">
+            <h6 class="mb-0 pb-3">
+              <span>Log In </span><span> Sign Up</span>
+            </h6>
+            <input :id="checkboxId" class="checkbox" type="checkbox" v-model="isFlipped" />
+            <label :for="checkboxId" class="checkbox"></label>
+            <div class="card-3d-wrap mx-auto">
+              <div class="card-3d-wrapper" :class="{ rotate: isFlipped }">
+                <!-- Login Card -->
+                <div class="card-front">
+                  <div class="center-wrap">
+                    <div class="section text-center">
+                      <h4 class="mb-4 pb-3">Log In</h4>
+                      <div class="form-group mt-2">
                         <input 
-                            class="checkbox" 
-                            type="checkbox" 
-                            :id="checkboxId" 
-                            v-model="isFlipped"
+                          type="email" 
+                          class="form-style" 
+                          placeholder="Your Email" 
+                          v-model="loginForm.email"
                         />
-                        <label :for="checkboxId"></label>
-                        
-                        <div class="card-3d-wrap mx-auto">
-                            <div class="card-3d-wrapper" :class="{ 'rotate': isFlipped }">
-                                <!-- Login Form (Front) -->
-                                <div class="card-front">
-                                    <div class="center-wrap">
-                                        <div class="section text-center">
-                                            <h4 class="mb-4 pb-3">Log In</h4>
-                                            
-                                            <div class="form-group">
-                                                <input 
-                                                    type="email" 
-                                                    v-model="loginForm.email"
-                                                    class="form-style" 
-                                                    placeholder="Your Email" 
-                                                    :id="'logemail-' + uniqueId"
-                                                    autocomplete="off"
-                                                    @keyup.enter="handleLogin"
-                                                >
-                                                <i class="input-icon uil uil-at"></i>
-                                            </div>
-                                            
-                                            <div class="form-group mt-2">
-                                                <input 
-                                                    type="password" 
-                                                    v-model="loginForm.password"
-                                                    class="form-style" 
-                                                    placeholder="Your Password" 
-                                                    :id="'logpass-' + uniqueId"
-                                                    autocomplete="off"
-                                                    @keyup.enter="handleLogin"
-                                                >
-                                                <i class="input-icon uil uil-lock-alt"></i>
-                                            </div>
-                                            
-                                            <button @click="handleLogin" class="btn mt-4">submit</button>
-                                            <p class="mb-0 mt-4 text-center">
-                                                <a href="#" @click.prevent="forgotPassword" class="link">Forgot your password?</a>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Signup Form (Back) -->
-                                <div class="card-back">
-                                    <div class="center-wrap">
-                                        <div class="section text-center">
-                                            <h4 class="mb-4 pb-3">Sign Up</h4>
-                                            
-                                            <div class="form-group">
-                                                <input 
-                                                    type="text" 
-                                                    v-model="signupForm.name"
-                                                    class="form-style" 
-                                                    placeholder="Your Name" 
-                                                    :id="'signup-name-' + uniqueId"
-                                                    autocomplete="off"
-                                                    @keyup.enter="handleSignup"
-                                                >
-                                                <i class="input-icon uil uil-user"></i>
-                                            </div>
-                                            
-                                            <div class="form-group mt-2">
-                                                <input 
-                                                    type="text" 
-                                                    v-model="signupForm.surname"
-                                                    class="form-style" 
-                                                    placeholder="Your Surname" 
-                                                    :id="'signup-surname-' + uniqueId"
-                                                    autocomplete="off"
-                                                    @keyup.enter="handleSignup"
-                                                >
-                                                <i class="input-icon uil uil-user"></i>
-                                            </div>
-                                            
-                                            <div class="form-group mt-2">
-                                                <input 
-                                                    type="email" 
-                                                    v-model="signupForm.email"
-                                                    class="form-style" 
-                                                    placeholder="Your Email" 
-                                                    :id="'signup-email-' + uniqueId"
-                                                    autocomplete="off"
-                                                    @keyup.enter="handleSignup"
-                                                >
-                                                <i class="input-icon uil uil-at"></i>
-                                            </div>
-                                            
-                                            <div class="form-group mt-2">
-                                                <input 
-                                                    type="password" 
-                                                    v-model="signupForm.password"
-                                                    class="form-style" 
-                                                    placeholder="Your Password" 
-                                                    :id="'signup-pass-' + uniqueId"
-                                                    autocomplete="off"
-                                                    @keyup.enter="handleSignup"
-                                                >
-                                                <i class="input-icon uil uil-lock-alt"></i>
-                                            </div>
-                                            
-                                            <div class="form-group mt-2">
-                                                <select 
-                                                    v-model="signupForm.areaCode"
-                                                    class="form-style select-style"
-                                                    :id="'signup-area-' + uniqueId"
-                                                >
-                                                    <option value="" disabled selected>Select Cape Town Area</option>
-                                                    <option value="8001">Cape Town City Centre (8001)</option>
-                                                    <option value="8005">Sea Point (8005)</option>
-                                                    <option value="7700">Rondebosch (7700)</option>
-                                                    <option value="7708">Claremont (7708)</option>
-                                                    <option value="7800">Constantia (7800)</option>
-                                                    <option value="7945">Tokai (7945)</option>
-                                                    <option value="7806">Hout Bay (7806)</option>
-                                                    <option value="7441">Blouberg (7441)</option>
-                                                    <option value="7443">Parklands (7443)</option>
-                                                    <option value="7530">Bellville (7530)</option>
-                                                    <option value="7570">Durbanville (7570)</option>
-                                                    <option value="7640">Milnerton (7640)</option>
-                                                    <option value="7130">Somerset West (7130)</option>
-                                                    <option value="7140">Strand (7140)</option>
-                                                    <option value="7800">Kirstenhof (7800)</option>
-                                                    <option value="7945">Bergvliet (7945)</option>
-                                                    <option value="7800">Meadowridge (7800)</option>
-                                                    <option value="7708">Kenilworth (7708)</option>
-                                                    <option value="7945">Lakeside (7945)</option>
-                                                    <option value="7800">Muizenberg (7800)</option>
-                                                </select>
-                                                <i class="input-icon uil uil-location-point"></i>
-                                            </div>
-                                            
-                                            <button @click="handleSignup" class="btn mt-4">submit</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <i class="input-icon uil uil-at"></i>
+                      </div>
+                      <div class="form-group mt-2">
+                        <input 
+                          type="password" 
+                          class="form-style" 
+                          placeholder="Your Password" 
+                          v-model="loginForm.password"
+                          @keyup.enter="handleLogin"
+                        />
+                        <i class="input-icon uil uil-lock-alt"></i>
+                      </div>
+                      <button class="btn mt-4" @click="handleLogin">submit</button>
+                      <p class="mb-0 mt-4 text-center">
+                        <a href="#" class="link" @click.prevent="forgotPassword">Forgot your password?</a>
+                      </p>
                     </div>
+                  </div>
                 </div>
+
+                <!-- Signup Card -->
+                <div class="card-back">
+                  <div class="center-wrap">
+                    <div class="section text-center">
+                      <h4 class="mb-4 pb-3">Sign Up</h4>
+                      <div class="form-group mt-2">
+                        <input 
+                          type="text" 
+                          class="form-style" 
+                          placeholder="Your Name" 
+                          v-model="signupForm.name"
+                        />
+                        <i class="input-icon uil uil-user"></i>
+                      </div>
+                      <div class="form-group mt-2">
+                        <input 
+                          type="text" 
+                          class="form-style" 
+                          placeholder="Your Surname" 
+                          v-model="signupForm.surname"
+                        />
+                        <i class="input-icon uil uil-user-circle"></i>
+                      </div>
+                      <div class="form-group mt-2">
+                        <input 
+                          type="email" 
+                          class="form-style" 
+                          placeholder="Email" 
+                          v-model="signupForm.email"
+                        />
+                        <i class="input-icon uil uil-at"></i>
+                      </div>
+                      <div class="form-group mt-2">
+                        <input 
+                          type="password" 
+                          class="form-style" 
+                          placeholder="Password (min 6 characters)" 
+                          v-model="signupForm.password"
+                        />
+                        <i class="input-icon uil uil-lock-alt"></i>
+                      </div>
+                      <div class="form-group mt-2">
+                        <select class="form-style select-style" v-model="signupForm.areaCode">
+                          <option value="" disabled selected>Select Cape Town Area</option>
+                          <option v-for="area in capeTownAreas" :key="area.code" :value="area.code">
+                            {{ area.area }} ({{ area.code }})
+                          </option>
+                        </select>
+                        <i class="input-icon uil uil-map-pin"></i>
+                      </div>
+                      <button class="btn mt-4" @click="handleSignup">submit</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 </template>
 
-<script setup>
+<script>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
@@ -213,14 +158,70 @@ const capeTownAreas = [
     { code: '7800', area: 'Muizenberg' }
 ]
 
-// Methods
-const handleLogin = () => {
-    console.log('Login attempt:', loginForm)
-    
-    // Basic validation
-    if (!loginForm.email || !loginForm.password) {
-        alert('Please fill in all fields')
-        return
+    // Generate unique ID for this component instance
+    const uniqueId = Math.random().toString(36).substring(2, 10)
+    const checkboxId = `reg-log-${uniqueId}`
+
+    // State
+    const isFlipped = ref(false)
+
+    const loginForm = reactive({
+        email: '',
+        password: ''
+    })
+
+    const signupForm = reactive({
+        name: '',
+        surname: '',
+        email: '',
+        password: '',
+        areaCode: ''
+    })
+
+    // Cape Town area codes for reference
+    const capeTownAreas = [
+        { code: '8001', area: 'Cape Town City Centre' },
+        { code: '8005', area: 'Sea Point' },
+        { code: '7700', area: 'Rondebosch' },
+        { code: '7708', area: 'Claremont' },
+        { code: '7800', area: 'Constantia' },
+        { code: '7945', area: 'Tokai' },
+        { code: '7806', area: 'Hout Bay' },
+        { code: '7441', area: 'Blouberg' },
+        { code: '7443', area: 'Parklands' },
+        { code: '7530', area: 'Bellville' },
+        { code: '7570', area: 'Durbanville' },
+        { code: '7640', area: 'Milnerton' },
+        { code: '7130', area: 'Somerset West' },
+        { code: '7140', area: 'Strand' },
+        { code: '7800', area: 'Kirstenhof' },
+        { code: '7945', area: 'Bergvliet' },
+        { code: '7800', area: 'Meadowridge' },
+        { code: '7708', area: 'Kenilworth' },
+        { code: '7945', area: 'Lakeside' },
+        { code: '7800', area: 'Muizenberg' }
+    ]
+
+    // Methods
+    const handleLogin = () => {
+        console.log('Login attempt:', loginForm)
+        
+        // Basic validation
+        if (!loginForm.email || !loginForm.password) {
+            alert('Please fill in all fields')
+            return
+        }
+        
+        // Use auth store
+        authStore.login(loginForm.email)
+        
+        // Set flag to show welcome animation
+        sessionStorage.setItem('justLoggedIn', 'true')
+        
+        alert(`Welcome back, ${loginForm.email}!`)
+        
+        // Reload the page to trigger animation in App.vue
+        window.location.reload()
     }
     
     const userData = {
@@ -237,18 +238,44 @@ const handleLogin = () => {
     router.push('/')
 }
 
-const handleSignup = () => {
-    console.log('Signup attempt:', signupForm)
-    
-    // Basic validation
-    if (!signupForm.name || !signupForm.surname || !signupForm.email || !signupForm.password || !signupForm.areaCode) {
-        alert('Please fill in all fields and select your area code')
-        return
+    const handleSignup = () => {
+        console.log('Signup attempt:', signupForm)
+        
+        // Basic validation
+        if (!signupForm.name || !signupForm.surname || !signupForm.email || !signupForm.password || !signupForm.areaCode) {
+            alert('Please fill in all fields and select your area code')
+            return
+        }
+        
+        if (signupForm.password.length < 6) {
+            alert('Password must be at least 6 characters long')
+            return
+        }
+        
+        const selectedArea = capeTownAreas.find(area => area.code === signupForm.areaCode)
+        const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
+        
+        // Use auth store
+        authStore.signup({
+            name: signupForm.name,
+            surname: signupForm.surname,
+            fullName: `${signupForm.name} ${signupForm.surname}`,
+            email: signupForm.email,
+            location: location
+        })
+        
+        // Set flag to show welcome animation
+        sessionStorage.setItem('justLoggedIn', 'true')
+        
+        alert(`Welcome to the community, ${signupForm.name}!`)
+        
+        // Reload the page to trigger animation in App.vue
+        window.location.reload()
     }
-    
-    if (signupForm.password.length < 6) {
-        alert('Password must be at least 6 characters long')
-        return
+
+    const forgotPassword = () => {
+        console.log('Forgot password clicked')
+        alert('Password reset functionality would be implemented here')
     }
     
     // Get area name from code
@@ -272,9 +299,17 @@ const handleSignup = () => {
     router.push('/preferences')
 }
 
-const forgotPassword = () => {
-    console.log('Forgot password clicked')
-    alert('Password reset functionality would be implemented here')
+    return {
+        checkboxId,
+        isFlipped,
+        loginForm,
+        signupForm,
+        capeTownAreas,
+        handleLogin,
+        handleSignup,
+        forgotPassword
+    }
+  }
 }
 </script>
 
@@ -296,31 +331,35 @@ const forgotPassword = () => {
     padding: 0;
     margin: 10px auto;
     cursor: pointer;
-    background-color: #ffeba7;
+    background: linear-gradient(90deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .checkbox:checked + label:before,
 .checkbox:not(:checked) + label:before {
     position: absolute;
     display: block;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    color: #ffeba7;
-    background-color: #eef2ff;
+    color: #ffffff;
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
     font-family: 'unicons';
     content: '\eb4f';
     z-index: 20;
-    top: -10px;
-    left: -10px;
-    line-height: 36px;
+    top: -14px;
+    left: -5px;
+    line-height: 40px;
     text-align: center;
     font-size: 24px;
     transition: all 0.5s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
 .checkbox:checked + label:before {
-    transform: translateX(44px) rotate(-270deg);
+    transform: translateX(44px) rotate(-360deg);
 }
 
 .card-3d-wrap {
@@ -353,13 +392,13 @@ const forgotPassword = () => {
 .card-back {
     width: 100%;
     height: 100%;
-    background-color: #ffffff;
-    background-image: url('/src/assets/bg.svg');
-    background-position: bottom center;
-    background-repeat: no-repeat;
-    background-size: 300%;
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
     position: absolute;
-    border-radius: 6px;
+    border-radius: 25px;
     left: 0;
     top: 0;
     -webkit-transform-style: preserve-3d;
@@ -393,21 +432,21 @@ const forgotPassword = () => {
 }
 
 .form-style {
-    padding: 13px 20px;
+    padding: 15px 20px;
     padding-left: 55px;
-    height: 48px;
+    height: 52px;
     width: 100%;
     font-weight: 500;
-    border-radius: 4px;
+    border-radius: 50px;
     font-size: 14px;
     line-height: 22px;
     letter-spacing: 0.5px;
     outline: none;
-    color: #c4c3ca;
-    background-color: #989dbb;
-    border: none;
-    transition: all 200ms linear;
-    box-shadow: 0 4px 8px 0 rgba(21,21,21,.2);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 300ms ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .select-style {
@@ -419,39 +458,119 @@ const forgotPassword = () => {
 }
 
 .select-style option {
-    background-color: #1f2029;
-    color: #d1cee2;
+    background-color: #c01a62;
+    color: #ffffff;
     padding: 10px;
 }
 
 .form-style:focus,
 .form-style:active {
-    border: none;
+    border: 2px solid #AEE994;
     outline: none;
-    box-shadow: 0 4px 8px 0 rgba(21,21,21,.2);
+    box-shadow: 0 8px 25px rgba(174, 233, 148, 0.3);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .input-icon {
     position: absolute;
     top: 0;
     left: 18px;
-    height: 48px;
+    height: 52px;
     font-size: 24px;
-    line-height: 48px;
+    line-height: 52px;
     text-align: left;
-    color: #ffeba7;
-    transition: all 200ms linear;
-    z-index: 10;
+    color: #ffffff;
+    transition: all 300ms ease;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.form-group:focus-within .input-icon {
+    color: #AEE994;
+    transform: scale(1.1);
 }
 
 .form-group input::placeholder {
-    color: #fbfaff;
-    opacity: 0.7;
-    transition: all 200ms linear;
+    color: rgba(255, 255, 255, 0.7);
+    opacity: 0.8;
+    transition: all 300ms ease;
 }
 
 .form-group input:focus::placeholder {
     opacity: 0;
+    transform: translateX(10px);
+}
+
+.btn {  
+    border-radius: 50px;
+    height: 48px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: all 300ms ease;
+    padding: 0 35px;
+    letter-spacing: 1px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: none;
+    background: linear-gradient(45deg, #EEAECA, #ffb5d1);
+    color: #ffffff;
+    box-shadow: 0 10px 20px rgba(238, 174, 202, 0.3);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn:hover {  
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+    color: #ffffff;
+    box-shadow: 0 15px 30px rgba(174, 233, 148, 0.5);
+    transform: translateY(-3px);
+}
+
+h4 {
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(238, 174, 202, 0.3);
+}
+
+h6 {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+h6 span {
+    padding: 0 20px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(174, 233, 148, 0.3);
+}
+
+.link {
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+.link:hover {
+    color: #AEE994;
+    opacity: 1;
 }
 
 /* Responsive adjustments */
@@ -464,5 +583,63 @@ const forgotPassword = () => {
     .center-wrap {
         padding: 0 20px;
     }
+    
+    .btn {
+        height: 44px;
+        font-size: 13px;
+        padding: 0 25px;
+    }
 }
 </style>
+
+// Methods
+const handleLogin = () => {
+    console.log('Login attempt:', loginForm)
+    
+    // Basic validation
+    if (!loginForm.email || !loginForm.password) {
+        alert('Please fill in all fields')
+        return
+    }
+    
+    // Use auth store
+    authStore.login(loginForm.email)
+    
+    // Set flag to show welcome animation
+    sessionStorage.setItem('justLoggedIn', 'true')
+    
+    // Reload the page to trigger animation in App.vue
+    window.location.reload()
+}
+
+const handleSignup = () => {
+    console.log('Signup attempt:', signupForm)
+    
+    // Basic validation
+    if (!signupForm.name || !signupForm.surname || !signupForm.email || !signupForm.password || !signupForm.areaCode) {
+        alert('Please fill in all fields and select your area code')
+        return
+    }
+    
+    if (signupForm.password.length < 6) {
+        alert('Password must be at least 6 characters long')
+        return
+    }
+    
+    const selectedArea = capeTownAreas.find(area => area.code === signupForm.areaCode)
+    const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
+    
+    // Use auth store
+    authStore.signup({
+        name: signupForm.name,
+        surname: signupForm.surname,
+        fullName: `${signupForm.name} ${signupForm.surname}`,
+        email: signupForm.email,
+        location: location
+    })
+    
+    // Set flag to show welcome animation
+    sessionStorage.setItem('justLoggedIn', 'true')
+    
+    // Reload the page to trigger animation in App.vue
+    window.location.reload()

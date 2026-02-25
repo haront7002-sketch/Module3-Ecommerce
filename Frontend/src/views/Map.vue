@@ -5,14 +5,14 @@
       <div class="brand">
         <div class="logo">SOS</div>
         <div>
-          <h1>Cape Town Events Map</h1>
+          <h1>{{ userLocation || 'Cape Town' }} Events Map</h1>
           <p class="subtitle">Explore what's happening near you</p>
         </div>
       </div>
 
       <div class="stats">
         <span class="stat-item">
-          <i class="uil uil-map-marker"></i> {{ filteredEvents.length }} events
+          <i class="uil uil-map-marker"></i> {{ eventStore.filteredEvents.length }} events
         </span>
       </div>
     </div>
@@ -25,6 +25,7 @@
           v-model.trim="query"
           class="search-input"
           placeholder="Search events by title, location, or category..."
+          @input="handleSearch"
         />
       </div>
     </div>
@@ -35,33 +36,49 @@
       <aside class="panel glass-card">
         <div class="panel-header">
           <h2>Events</h2>
-          <span class="pill">{{ filteredEvents.length }}</span>
+          <span class="pill">{{ eventStore.filteredEvents.length }}</span>
         </div>
 
-        <div class="events-list">
+        <div v-if="eventStore.loading" class="loading-state">
+          <div class="loader"></div>
+          <p>Loading events...</p>
+        </div>
+
+        <div v-else class="events-list">
           <button
-            v-for="ev in filteredEvents"
+            v-for="ev in eventStore.filteredEvents"
             :key="ev.id"
             class="event-item"
             @click="focusEvent(ev)"
           >
             <div class="event-item-top">
-              <span class="event-emoji">{{ ev.emoji }}</span>
+              <span class="event-emoji">{{ ev.emoji || '🎉' }}</span>
               <div class="event-item-text">
                 <div class="event-title-row">
                   <span class="event-title">{{ ev.title }}</span>
                   <span class="event-price">R {{ ev.price }}</span>
                 </div>
-                <div class="event-area">{{ ev.area }}</div>
+                <div class="event-area">{{ ev.location?.area || ev.area }}</div>
               </div>
             </div>
             <div class="event-desc">{{ ev.description }}</div>
+            <div class="event-time">
+              <i class="uil uil-calendar-alt"></i> {{ formatDate(ev.startDate) }}
+            </div>
           </button>
 
-          <div v-if="filteredEvents.length === 0" class="empty-state">
+          <div v-if="eventStore.filteredEvents.length === 0" class="empty-state">
             <i class="uil uil-map-marker-slash"></i>
             <p>No events match your search</p>
           </div>
+        </div>
+
+        <!-- Load More -->
+        <div v-if="hasMoreEvents" class="load-more">
+          <button @click="loadMoreEvents" class="load-more-btn" :disabled="eventStore.loading">
+            <span v-if="eventStore.loading" class="loader-small"></span>
+            <span v-else>Load More</span>
+          </button>
         </div>
       </aside>
 
@@ -134,10 +151,11 @@ const filteredEvents = computed(() => {
 
 // Popup HTML
 const popupHtml = (ev) => {
+  const isFav = favouritesStore.favouriteIds.includes(ev.id)
   return `
     <div style="min-width:220px">
       <div style="display:flex; gap:10px; align-items:flex-start;">
-        <div style="font-size:22px; line-height:1;">${ev.emoji}</div>
+        <div style="font-size:22px; line-height:1;">${ev.emoji || '🎉'}</div>
         <div>
           <h3 style="margin:0 0 6px; font-size:14px; color:#333;">${ev.title}</h3>
           <div style="margin:0 0 6px; color:#666; font-size:12px;">${ev.area || ''}</div>
@@ -152,23 +170,40 @@ const popupHtml = (ev) => {
   `;
 };
 
-// Wire up pay button
-const wirePayButton = (ev) => {
+// Wire up buttons
+const wirePopupButtons = (ev) => {
   const marker = markerById.get(ev.id);
   if (marker) {
     marker.off("popupopen");
     marker.on("popupopen", () => {
       setTimeout(() => {
-        const btn = document.getElementById(`pay-${ev.id}`);
-        if (btn) {
-          btn.onclick = (e) => {
+        const favBtn = document.getElementById(`fav-${ev.id}`);
+        const payBtn = document.getElementById(`pay-${ev.id}`);
+        
+        if (favBtn) {
+          favBtn.onclick = async (e) => {
+            e.stopPropagation();
+            if (favouritesStore.favouriteIds.includes(ev.id)) {
+              await favouritesStore.removeFromFavourites(ev.id);
+              marker.closePopup();
+              marker.openPopup(); // Refresh popup
+            } else {
+              await favouritesStore.addToFavourites(ev);
+              marker.closePopup();
+              marker.openPopup(); // Refresh popup
+            }
+          };
+        }
+        
+        if (payBtn) {
+          payBtn.onclick = (e) => {
             e.stopPropagation();
             router.push({
               name: "payments",
               query: {
                 eventId: ev.id,
                 title: ev.title,
-                date: "Today",
+                date: formatDate(ev.startDate),
                 price: ev.price,
               },
             });
@@ -182,7 +217,9 @@ const wirePayButton = (ev) => {
 // Focus on event
 const focusEvent = (ev) => {
   if (!map) return;
-  map.setView([ev.lat, ev.lng], 14, { animate: true });
+  const lat = ev.location?.coordinates?.lat || ev.lat
+  const lng = ev.location?.coordinates?.lng || ev.lng
+  map.setView([lat, lng], 14, { animate: true });
   const marker = markerById.get(ev.id);
   if (marker) {
     marker.openPopup();
@@ -201,38 +238,86 @@ const updateMarkers = (newEvents) => {
 
   // Add new markers
   newEvents.forEach((ev) => {
-    const marker = L.marker([ev.lat, ev.lng]).addTo(map);
-    markerById.set(ev.id, marker);
+    const lat = ev.location?.coordinates?.lat || ev.lat
+    const lng = ev.location?.coordinates?.lng || ev.lng
+    
+    if (lat && lng) {
+      const marker = L.marker([lat, lng]).addTo(map);
+      markerById.set(ev.id, marker);
 
-    marker.bindPopup(popupHtml(ev));
-    wirePayButton(ev);
+      marker.bindPopup(popupHtml(ev));
+      wirePopupButtons(ev);
+    }
   });
 
   // Fit bounds
   if (newEvents.length > 0) {
-    const group = L.featureGroup(
-      newEvents.map((ev) => L.marker([ev.lat, ev.lng]))
-    );
-    map.fitBounds(group.getBounds(), { padding: [50, 50] });
+    const validEvents = newEvents.filter(ev => ev.location?.coordinates?.lat || ev.lat)
+    if (validEvents.length > 0) {
+      const group = L.featureGroup(
+        validEvents.map((ev) => {
+          const lat = ev.location?.coordinates?.lat || ev.lat
+          const lng = ev.location?.coordinates?.lng || ev.lng
+          return L.marker([lat, lng])
+        })
+      );
+      map.fitBounds(group.getBounds(), { padding: [50, 50] });
+    }
   }
 };
 
+const handleSearch = async () => {
+  await eventStore.searchEvents(query.value)
+  updateMarkers(eventStore.filteredEvents)
+}
+
+const loadMoreEvents = async () => {
+  page.value++
+  await eventStore.fetchEvents({ 
+    page: page.value,
+    limit: 20,
+    lat: userLatLng.value.lat,
+    lng: userLatLng.value.lng,
+    distance: authStore.user?.preferences?.maxDistance || 50
+  })
+  
+  if (eventStore.events.length === 0) {
+    hasMoreEvents.value = false
+  }
+}
+
 // Watch filtered events
-watch(filteredEvents, updateMarkers, { deep: true });
+watch(() => eventStore.filteredEvents, updateMarkers, { deep: true })
 
 onMounted(async () => {
   L = await loadLeaflet();
   
-  map = L.map(mapEl.value, { zoomControl: true }).setView([-33.9249, 18.4241], 12);
+  map = L.map(mapEl.value, { zoomControl: true }).setView(
+    [userLatLng.value.lat, userLatLng.value.lng], 
+    12
+  );
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
 
-  updateMarkers(events.value);
+  // Load events near user location
+  await eventStore.fetchEvents({
+    lat: userLatLng.value.lat,
+    lng: userLatLng.value.lng,
+    distance: authStore.user?.preferences?.maxDistance || 50,
+    page: 1,
+    limit: 50
+  })
+  
+  await favouritesStore.fetchFavourites()
+  updateMarkers(eventStore.events)
 });
 
 onBeforeUnmount(() => {
+  markerById.forEach((marker) => {
+    if (map) map.removeLayer(marker);
+  });
   markerById.clear();
   if (map) {
     map.remove();
@@ -242,13 +327,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Keep all existing styles from original Map.vue */
 .map-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
   padding: 20px;
 }
 
-/* Glass Card Effect */
 .glass-card {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -257,7 +342,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Header */
 .map-header {
   display: flex;
   justify-content: space-between;
@@ -315,7 +399,6 @@ h1 {
   font-weight: 500;
 }
 
-/* Search Section */
 .search-section {
   margin-bottom: 20px;
   padding: 0 10px;
@@ -357,7 +440,6 @@ h1 {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Main Layout */
 .map-main {
   display: grid;
   grid-template-columns: 360px 1fr;
@@ -371,7 +453,6 @@ h1 {
   }
 }
 
-/* Sidebar Panel */
 .panel {
   overflow: hidden;
   display: flex;
@@ -494,6 +575,46 @@ h1 {
   line-height: 1.4;
 }
 
+.event-time {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: white;
+}
+
+.loader {
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #EEAECA;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
 .empty-state {
   padding: 40px 20px;
   text-align: center;
@@ -506,7 +627,34 @@ h1 {
   color: rgba(255,255,255,0.4);
 }
 
-/* Map Card */
+.load-more {
+  padding: 15px;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.load-more-btn {
+  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .map-card {
   overflow: hidden;
   height: calc(100vh - 200px);
@@ -517,7 +665,6 @@ h1 {
   width: 100%;
 }
 
-/* Leaflet popup customization */
 :deep(.leaflet-popup-content-wrapper) {
   background: white;
   border-radius: 14px;

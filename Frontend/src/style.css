@@ -394,3 +394,46 @@ h6 span {
     border-radius: 10px;
     margin: 10px 0;
 }
+
+/* Update all instances of #4caf50, #45a049 to #AEE994 and darker green for hover */
+.btn:hover {  
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+    color: #ffffff;
+    box-shadow: 0 15px 30px rgba(174, 233, 148, 0.5);
+    transform: translateY(-3px);
+}
+
+.btn:active,
+.btn:focus {  
+    background: linear-gradient(45deg, #AEE994, #8fd877);
+    color: #EEAECA;
+    box-shadow: 0 10px 20px rgba(174, 233, 148, 0.4);
+}
+
+.form-style:focus,
+.form-style:active {
+    border: 2px solid #AEE994;
+    box-shadow: 0 8px 25px rgba(174, 233, 148, 0.3);
+}
+
+.form-group:focus-within .input-icon {
+    color: #AEE994;
+}
+
+.checkbox:checked + label,
+.checkbox:not(:checked) + label {
+    background: linear-gradient(90deg, #c01a62 0%, #fe6bab 50%, #AEE994 100%);
+}
+
+.mb-0.mt-4.text-center a::after {
+    background: linear-gradient(90deg, #c01a62 0%, #fe6bab 50%, #AEE994 100%);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #AEE994 100%);
+}
+
+.success-message {
+    background: rgba(174, 233, 148, 0.2);
+    border-left: 4px solid #AEE994;
+}
