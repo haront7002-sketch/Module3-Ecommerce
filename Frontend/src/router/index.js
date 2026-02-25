@@ -71,8 +71,12 @@ router.beforeEach((to, from, next) => {
   else if (token && !hasPreferences && to.path !== '/preferences') {
     next('/preferences');
   }
-  // If user has token and preferences and trying to go to root, send to home
+  // If user has token and preferences and trying to go to root, allow
   else if (token && hasPreferences && to.path === '/') {
+    next();
+  }
+  // If user has token and is going to any other route, allow
+  else if (token) {
     next();
   }
   else {
