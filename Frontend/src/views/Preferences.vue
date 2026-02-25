@@ -152,10 +152,10 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useStore } from 'vuex'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const store = useStore()
 const step = ref(1)
 const distanceUnit = ref('km')
 
@@ -273,8 +273,12 @@ const savePreferences = () => {
     distanceUnit: distanceUnit.value
   }
   
-  // Use auth store to save
-  authStore.savePreferences(completePrefs)
+  const currentUser = store.state.me || JSON.parse(localStorage.getItem('user') || 'null') || {}
+  const updatedUser = { ...currentUser, ...completePrefs, profileComplete: true }
+
+  store.commit('setMe', updatedUser)
+  localStorage.setItem('user', JSON.stringify(updatedUser))
+  localStorage.setItem('preferences', JSON.stringify(completePrefs))
   
   alert('Profile completed! Redirecting to your profile...')
   router.push('/profile')

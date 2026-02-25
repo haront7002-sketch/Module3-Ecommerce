@@ -131,21 +131,37 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 
 const router = useRouter()
-const favourites = ref([])
+const store = useStore()
 const selectedEvent = ref(null)
 const loading = ref(true)
 
-// Load favourites from localStorage
-const loadFavourites = () => {
-  loading.value = true
-  const stored = localStorage.getItem('favourites')
-  favourites.value = stored ? JSON.parse(stored) : []
-  loading.value = false
-}
+// Computed
+const favourites = computed(() =>
+  (store.state.favourites || []).map((event) => ({
+    ...event,
+    id: event.id ?? event.event_id,
+    title: event.title ?? event.event_title ?? 'Untitled Event',
+    area: event.area ?? event.location ?? 'Unknown',
+    time: event.time ?? '',
+    date: event.date ?? null,
+    category: event.category ?? event.category_name ?? 'General',
+    image_url: event.image_url ?? '',
+    emoji: event.emoji ?? '🎉'
+  }))
+)
+
+// // Load favourites from localStorage
+// const loadFavourites = () => {
+//   loading.value = true
+//   const stored = localStorage.getItem('favourites')
+//   favourites.value = stored ? JSON.parse(stored) : []
+//   loading.value = false
+// }
 
 // Format date
 const formatDate = (dateString) => {
@@ -154,23 +170,23 @@ const formatDate = (dateString) => {
 }
 
 // Remove from favourites
-const removeFromFavourites = (eventId) => {
-  favourites.value = favourites.value.filter(e => e.id !== eventId)
-  localStorage.setItem('favourites', JSON.stringify(favourites.value))
-  
-  if (selectedEvent.value && selectedEvent.value.id === eventId) {
-    selectedEvent.value = null
+const removeFromFavourites = async (eventId) => {
+  try {
+    await store.dispatch('removeFavourite', eventId)
+    if (selectedEvent.value && selectedEvent.value.id === eventId) {
+      selectedEvent.value = null
+    }
+    showNotification('Removed from favourites')
+  } catch (error) {
+    showNotification('Error removing from favourites', 'error')
   }
-  
-  // Show notification
-  showNotification('Removed from favourites')
 }
 
 // View event details
 const viewEventDetails = (event) => {
   selectedEvent.value = event
 }
-
+  
 // Book event
 const bookEvent = (event) => {
   router.push({
@@ -184,8 +200,20 @@ const bookEvent = (event) => {
   })
 }
 
+// Load favourites
+const loadFavourites = async () => {
+  loading.value = true
+  try {
+    await store.dispatch('fetchFavourites')
+  } catch (error) {
+    console.error('Error loading favourites:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 // Show notification
-const showNotification = (message) => {
+const showNotification = (message, type = 'success') => {
   const notification = document.createElement('div')
   notification.className = 'notification'
   notification.textContent = message
@@ -193,11 +221,11 @@ const showNotification = (message) => {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: linear-gradient(135deg, #4caf50, #45a049);
+    background: ${type === 'success' ? 'linear-gradient(135deg, #4caf50, #45a049)' : 'linear-gradient(135deg, #ff6b6b, #ff5252)'};
     color: white;
     padding: 12px 24px;
     border-radius: 50px;
-    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     z-index: 1000;
     animation: slideIn 0.3s ease;
   `

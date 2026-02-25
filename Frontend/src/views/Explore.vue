@@ -119,7 +119,7 @@
             </div>
             <div class="event-content">
               <div class="event-header">
-                <span class="event-emoji">{{ event.emoji }}</span>
+                <img :src="event.image_url || 'https://placehold.co/120x120?text=Event'" alt="Event image" class="event-image">
                 <h3 class="event-title">{{ event.title }}</h3>
               </div>
               <p class="event-description">{{ event.description }}</p>
@@ -157,7 +157,7 @@
           </button>
           
           <div class="modal-header">
-            <span class="modal-emoji">{{ selectedEvent.emoji }}</span>
+            <img :src="selectedEvent.image_url || 'https://placehold.co/280x160?text=Event'" alt="Event image" class="modal-image">
             <h2>{{ selectedEvent.title }}</h2>
           </div>
 
@@ -240,8 +240,18 @@ const interestCategories = [
 ]
 
 // Computed properties from Vuex
-const events = computed(() => store.state.events)
-const favourites = computed(() => store.state.favourites)
+const events = computed(() =>
+  (store.state.events || []).map((event) => ({
+    ...event,
+    id: event.id ?? event.event_id,
+    title: event.title ?? event.event_title ?? 'Untitled Event',
+    area: event.area ?? event.location ?? 'Unknown',
+    date: event.date ?? null,
+    time: event.time ?? '',
+    category: event.category ?? event.category_name ?? 'General',
+    image_url: event.image_url ?? ''
+  }))
+)
 
 const filteredEvents = computed(() => {
   let filtered = events.value
@@ -255,10 +265,10 @@ const filteredEvents = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(event => 
-      event.title.toLowerCase().includes(query) ||
-      event.area?.toLowerCase().includes(query) ||
-      event.description?.toLowerCase().includes(query) ||
-      event.category?.toLowerCase().includes(query)
+      String(event.title || '').toLowerCase().includes(query) ||
+      String(event.area || '').toLowerCase().includes(query) ||
+      String(event.description || '').toLowerCase().includes(query) ||
+      String(event.category || '').toLowerCase().includes(query)
     )
   }
 
@@ -269,6 +279,7 @@ const eventsThisMonth = computed(() => {
   const currentMonth = currentDate.value.getMonth()
   const currentYear = currentDate.value.getFullYear()
   return events.value.filter(event => {
+    if (!event.date) return false
     const eventDate = new Date(event.date)
     return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
   }).length
@@ -858,8 +869,12 @@ h1 {
   margin-bottom: 10px;
 }
 
-.event-emoji {
-  font-size: 24px;
+.event-image {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .event-title {
@@ -875,6 +890,7 @@ h1 {
   margin-bottom: 15px;
   line-height: 1.4;
 }
+
 
 .event-meta {
   display: flex;
@@ -1048,8 +1064,11 @@ h1 {
   border-radius: 20px 20px 0 0;
 }
 
-.modal-emoji {
-  font-size: 60px;
+.modal-image {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
   margin-bottom: 15px;
   display: block;
 }

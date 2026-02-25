@@ -164,10 +164,10 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useStore } from 'vuex'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const store = useStore()
 
 // Generate unique ID for this component instance
 const uniqueId = Math.random().toString(36).substring(2, 10)
@@ -223,8 +223,15 @@ const handleLogin = () => {
         return
     }
     
-    // Use auth store
-    authStore.login(loginForm.email)
+    const userData = {
+      id: 'usr_' + Math.random().toString(36).slice(2, 11),
+      email: loginForm.email,
+      name: loginForm.email.split('@')[0],
+      profileComplete: true
+    }
+    store.commit('setToken', 'fake-jwt-token')
+    store.commit('setMe', userData)
+    localStorage.setItem('user', JSON.stringify(userData))
     
     alert(`Welcome back, ${loginForm.email}!`)
     router.push('/')
@@ -248,14 +255,18 @@ const handleSignup = () => {
     const selectedArea = capeTownAreas.find(area => area.code === signupForm.areaCode)
     const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
     
-    // Use auth store
-    authStore.signup({
-        name: signupForm.name,
-        surname: signupForm.surname,
-        fullName: `${signupForm.name} ${signupForm.surname}`,
-        email: signupForm.email,
-        location: location
-    })
+    const userData = {
+      id: 'usr_' + Math.random().toString(36).slice(2, 11),
+      name: signupForm.name,
+      surname: signupForm.surname,
+      fullName: `${signupForm.name} ${signupForm.surname}`,
+      email: signupForm.email,
+      location: location,
+      profileComplete: false
+    }
+    store.commit('setToken', 'fake-jwt-token')
+    store.commit('setMe', userData)
+    localStorage.setItem('user', JSON.stringify(userData))
     
     alert(`Welcome to the community, ${signupForm.name}! Let's set up your preferences.`)
     router.push('/preferences')

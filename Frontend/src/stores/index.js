@@ -1,6 +1,19 @@
 import { createStore } from 'vuex'
 
 const API_BASE_URL = 'http://localhost:3000'
+const LOCAL_FAVOURITES_KEY = 'favourites'
+
+const readLocalFavourites = () => {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_FAVOURITES_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+const writeLocalFavourites = (favourites) => {
+  localStorage.setItem(LOCAL_FAVOURITES_KEY, JSON.stringify(favourites))
+}
 
 export default createStore({
   state: {
@@ -13,7 +26,7 @@ export default createStore({
     order: null,
     orders: [],
     tickets: [],
-    me: null,
+    me: JSON.parse(localStorage.getItem('user') || 'null'),
     token: localStorage.getItem('token') || null,
     isAuthenticated: !!localStorage.getItem('token')
   },
@@ -64,12 +77,13 @@ export default createStore({
       localStorage.removeItem('token')
     },
     addToFavourites(state, event) {
-      if (!state.favourites.some(f => f.id === event.id)) {
+      const eventId = event?.id ?? event?.event_id
+      if (!state.favourites.some(f => String(f.id ?? f.event_id) === String(eventId))) {
         state.favourites.push(event)
       }
     },
     removeFromFavourites(state, eventId) {
-      state.favourites = state.favourites.filter(f => f.id !== eventId)
+      state.favourites = state.favourites.filter(f => String(f.id ?? f.event_id) !== String(eventId))
     }
   },
   actions: {
@@ -323,59 +337,108 @@ export default createStore({
     
     // Favourites actions
     async fetchFavourites({ commit, state }) {
-      if (!state.me?.id) return
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
+      const userId = state.me?.user_id ?? state.me?.id ?? storedUser?.user_id ?? storedUser?.id
+      const parsedUserId = Number(userId)
+      const hasValidBackendUserId = Number.isInteger(parsedUserId) && parsedUserId > 0
+
+      if (!hasValidBackendUserId) {
+        commit('setFavourites', readLocalFavourites())
+        return
+      }
       try {
-        const response = await fetch(`${API_BASE_URL}/favourites/${state.me.id}`, {
-          headers: { Authorization: `Bearer ${state.token}` }
-        })
+        const response = await fetch(`${API_BASE_URL}/favourites/${parsedUserId}`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch favourites (${response.status})`)
+        }
         const { favourites } = await response.json()
-        commit('setFavourites', favourites)
+        commit('setFavourites', favourites || [])
       } catch (error) {
         console.error('Fetch favourites error:', error)
+        commit('setFavourites', readLocalFavourites())
       }
     },
     
-    async addFavourite({ commit, state }, event) {
-      if (!state.me?.id) throw new Error('User not authenticated')
+    async addFavourite({ commit, dispatch, state }, event) {
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
+      const userId = state.me?.user_id ?? state.me?.id ?? storedUser?.user_id ?? storedUser?.id
+      const eventId = event?.id ?? event?.event_id
+      const parsedUserId = Number(userId)
+      const hasValidBackendUserId = Number.isInteger(parsedUserId) && parsedUserId > 0
+      if (!eventId) throw new Error('Invalid event')
+
+      const addFavouriteLocally = () => {
+        const localFavourites = readLocalFavourites()
+        const exists = localFavourites.some(f => String(f.id ?? f.event_id) === String(eventId))
+        if (!exists) {
+          const next = [...localFavourites, { ...event, id: eventId }]
+          writeLocalFavourites(next)
+          commit('setFavourites', next)
+        }
+        return { message: 'Added to favourites locally' }
+      }
+
+      if (!hasValidBackendUserId) {
+        return addFavouriteLocally()
+      }
+
       try {
         const response = await fetch(`${API_BASE_URL}/favourites`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${state.token}`
-          },
-          body: JSON.stringify({ userId: state.me.id, eventId: event.id })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: parsedUserId, event_id: eventId })
         })
         const data = await response.json()
-        if (data.success) {
-          commit('addToFavourites', event)
+        if (!response.ok) {
+          throw new Error(data?.message || `Failed to add favourite (${response.status})`)
+        }
+        if (response.ok) {
+          commit('addToFavourites', { ...event, id: eventId })
+          await dispatch('fetchFavourites')
         }
         return data
       } catch (error) {
         console.error('Add favourite error:', error)
-        throw error
+        return addFavouriteLocally()
       }
     },
     
-    async removeFavourite({ commit, state }, eventId) {
-      if (!state.me?.id) throw new Error('User not authenticated')
+    async removeFavourite({ commit, dispatch, state }, eventId) {
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
+      const userId = state.me?.user_id ?? state.me?.id ?? storedUser?.user_id ?? storedUser?.id
+      const parsedUserId = Number(userId)
+      const hasValidBackendUserId = Number.isInteger(parsedUserId) && parsedUserId > 0
+
+      const removeFavouriteLocally = () => {
+        const localFavourites = readLocalFavourites()
+        const next = localFavourites.filter(f => String(f.id ?? f.event_id) !== String(eventId))
+        writeLocalFavourites(next)
+        commit('setFavourites', next)
+        return { message: 'Removed from favourites locally' }
+      }
+
+      if (!hasValidBackendUserId) {
+        return removeFavouriteLocally()
+      }
+
       try {
         const response = await fetch(`${API_BASE_URL}/favourites`, {
           method: 'DELETE',
-          headers: { 
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${state.token}`
-          },
-          body: JSON.stringify({ userId: state.me.id, eventId })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: parsedUserId, event_id: eventId })
         })
         const data = await response.json()
-        if (data.success) {
+        if (!response.ok) {
+          throw new Error(data?.message || `Failed to remove favourite (${response.status})`)
+        }
+        if (response.ok) {
           commit('removeFromFavourites', eventId)
+          await dispatch('fetchFavourites')
         }
         return data
       } catch (error) {
         console.error('Remove favourite error:', error)
-        throw error
+        return removeFavouriteLocally()
       }
     }
   },

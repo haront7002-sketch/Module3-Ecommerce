@@ -1,17 +1,22 @@
 <script setup>
 import { RouterView, useRoute, useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useAuthStore } from './stores/auth'
+import { computed } from 'vue'
+import { useStore } from 'vuex'
 import LoginSignup from './components/LoginSignup.vue'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
-const { isAuthenticated, hasPreferences } = storeToRefs(authStore)
+const store = useStore()
+
+const isAuthenticated = computed(() => store.state.isAuthenticated)
+const hasPreferences = computed(() => {
+  const hasStoredPreferences = !!localStorage.getItem('preferences')
+  return hasStoredPreferences || !!store.state.me?.profileComplete
+})
 
 // Logout function
 const logout = () => {
-  authStore.logout()
+  store.dispatch('logout')
   router.push('/')
 }
 </script>

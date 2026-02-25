@@ -76,6 +76,15 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useStore } from "vuex";
+
+const router = useRouter();
+const store = useStore();
+const mapEl = ref(null);
+let map = null;
+let L = null;
+const markerById = new Map();
+const query = ref("");
 
 // Load Leaflet from CDN dynamically
 const loadLeaflet = () => {
@@ -106,103 +115,8 @@ const loadLeaflet = () => {
   });
 };
 
-const router = useRouter();
-const mapEl = ref(null);
-let map = null;
-let L = null;
-
-// Keep marker references
-const markerById = new Map();
-
-const query = ref("");
-
-// Events data
-const events = ref([
-  {
-    id: 1,
-    emoji: "🎶",
-    title: "V&A Waterfront Live Music",
-    area: "V&A Waterfront",
-    location: "Amphitheatre, V&A Waterfront",
-    description: "Live performances and vibe near the harbor.",
-    price: 120,
-    category: "Music & Nightlife",
-    lat: -33.9036,
-    lng: 18.4219,
-  },
-  {
-    id: 2,
-    emoji: "⛰️",
-    title: "Table Mountain Sunrise Hike",
-    area: "Table Mountain",
-    location: "Table Mountain National Park",
-    description: "Guided hike with sunrise views.",
-    price: 250,
-    category: "Sports & Adventure",
-    lat: -33.9628,
-    lng: 18.4098,
-  },
-  {
-    id: 3,
-    emoji: "🌅",
-    title: "Camps Bay Sunset Social",
-    area: "Camps Bay",
-    location: "Camps Bay Beach",
-    description: "Sunset vibes, food & DJs on the strip.",
-    price: 180,
-    category: "Social Vibes",
-    lat: -33.9519,
-    lng: 18.3773,
-  },
-  {
-    id: 4,
-    emoji: "🛍️",
-    title: "Old Biscuit Mill Market",
-    area: "Woodstock",
-    location: "Old Biscuit Mill",
-    description: "Food stalls, fashion and local crafts.",
-    price: 50,
-    category: "Food & Drink",
-    lat: -33.9273,
-    lng: 18.4484,
-  },
-  {
-    id: 5,
-    emoji: "🧘",
-    title: "Beach Yoga Session",
-    area: "Clifton",
-    location: "Clifton 4th Beach",
-    description: "Morning yoga with ocean views.",
-    price: 150,
-    category: "Wellness & Body",
-    lat: -33.9398,
-    lng: 18.3762,
-  },
-  {
-    id: 6,
-    emoji: "🍷",
-    title: "Wine Tasting Evening",
-    area: "Constantia",
-    location: "Groot Constantia",
-    description: "Premium wine tasting with cheese pairing.",
-    price: 300,
-    category: "Food & Drink",
-    lat: -34.0356,
-    lng: 18.4500,
-  },
-  {
-    id: 7,
-    emoji: "🎨",
-    title: "Art Workshop",
-    area: "CBD",
-    location: "Artscape Theatre Centre",
-    description: "Learn painting techniques with local artists.",
-    price: 200,
-    category: "Arts & Culture",
-    lat: -33.9175,
-    lng: 18.4270,
-  }
-]);
+// Events from Vuex
+const events = computed(() => store.state.events);
 
 // Filtered events
 const filteredEvents = computed(() => {
@@ -226,9 +140,9 @@ const popupHtml = (ev) => {
         <div style="font-size:22px; line-height:1;">${ev.emoji}</div>
         <div>
           <h3 style="margin:0 0 6px; font-size:14px; color:#333;">${ev.title}</h3>
-          <div style="margin:0 0 6px; color:#666; font-size:12px;">${ev.area}</div>
-          <div style="margin:0 0 8px; font-size:12px; color:#444;">${ev.description}</div>
-          <div style="margin:0 0 10px; font-size:12px;"><b style="color:#333;">Price:</b> <span style="color:#4caf50;">R ${ev.price}</span></div>
+          <div style="margin:0 0 6px; color:#666; font-size:12px;">${ev.area || ''}</div>
+          <div style="margin:0 0 8px; font-size:12px; color:#444;">${ev.description || ''}</div>
+          <div style="margin:0 0 10px; font-size:12px;"><b style="color:#333;">Price:</b> <span style="color:#4caf50;">R ${ev.price || 0}</span></div>
           <button id="pay-${ev.id}" style="padding:8px 12px;border-radius:20px;border:0;background:#4caf50;color:#fff;cursor:pointer;width:100%;">
             Book Tickets
           </button>
