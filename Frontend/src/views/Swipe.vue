@@ -10,21 +10,26 @@
       </div>
       <div class="stats">
         <span class="stat-item">
-          <i class="uil uil-heart" style="color: #ff6b6b;"></i> {{ likedCount }}
+          <i class="uil uil-heart" style="color: #ff6b6b;"></i> {{ favouritesStore.favouritesCount }}
         </span>
         <span class="stat-item">
-          <i class="uil uil-eye"></i> {{ cardsData.length - currentCardIndex }} left
+          <i class="uil uil-eye"></i> {{ remainingCount }} left
         </span>
       </div>
     </div>
     
-    <div class="card-container">
+    <div v-if="eventStore.loading" class="loading-state">
+      <div class="loader"></div>
+      <p>Loading events...</p>
+    </div>
+    
+    <div v-else class="card-container">
       <Card
-        v-for="(card, index) in visibleCards"
-        :key="card.id"
-        :cardData="card"
-        :index="currentCardIndex + index"
-        :currentIndex="currentCardIndex"
+        v-for="(event, index) in visibleEvents"
+        :key="event.id"
+        :eventData="event"
+        :index="currentEventIndex + index"
+        :currentIndex="currentEventIndex"
         :isTopCard="index === 0"
         @swipe-complete="handleSwipeComplete"
         @drag-start="handleDragStart"
@@ -33,7 +38,7 @@
       />
     </div>
 
-    <div class="no-cards" :class="{ active: noCardsLeft }">
+    <div class="no-cards" :class="{ active: noEventsLeft }">
       <i class="uil uil-frown"></i>
       <h2>No more events!</h2>
       <p>Check back later for new events or explore the map</p>
@@ -44,10 +49,13 @@
         <router-link to="/map" class="btn btn-secondary">
           <i class="uil uil-map-marker"></i> View Map
         </router-link>
+        <button @click="loadMoreEvents" class="btn btn-secondary" v-if="hasMoreEvents">
+          <i class="uil uil-redo"></i> Load More
+        </button>
       </div>
     </div>
 
-    <div class="action-buttons" v-if="!noCardsLeft">
+    <div class="action-buttons" v-if="!noEventsLeft && !eventStore.loading">
       <button class="action-btn nope" @click="swipeCard('left')">
         <i class="uil uil-times"></i>
       </button>
@@ -58,209 +66,155 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import Card from '@/components/card.vue'
+import { useEventStore } from '@/stores/event'
+import { useFavouritesStore } from '@/stores/favourites'
+import { useAuthStore } from '@/stores/auth'
 
-export default {
-  name: 'SwipeView',
-  components: {
-    Card
-  },
-  data() {
-    return {
-      cardsData: [
-        { 
-          id: 1, 
-          emoji: '🎶', 
-          title: 'V&A Waterfront Live Music', 
-          description: 'Live performances and vibe near the harbor.',
-          area: 'V&A Waterfront',
-          location: 'Amphitheatre, V&A Waterfront',
-          price: 120,
-          category: 'Music & Nightlife',
-          date: '2026-03-15',
-          time: '18:00',
-          lat: -33.9036,
-          lng: 18.4219
-        },
-        { 
-          id: 2, 
-          emoji: '⛰️', 
-          title: 'Table Mountain Sunrise Hike', 
-          description: 'Guided hike with sunrise views.',
-          area: 'Table Mountain',
-          location: 'Table Mountain National Park',
-          price: 250,
-          category: 'Sports & Adventure',
-          date: '2026-03-16',
-          time: '05:30',
-          lat: -33.9628,
-          lng: 18.4098
-        },
-        { 
-          id: 3, 
-          emoji: '🌟', 
-          title: 'Camps Bay Sunset Social', 
-          description: 'Sunset vibes, food & DJs on the strip.',
-          area: 'Camps Bay',
-          location: 'Camps Bay Beach',
-          price: 180,
-          category: 'Social Vibes',
-          date: '2026-03-16',
-          time: '17:00',
-          lat: -33.9519,
-          lng: 18.3773
-        },
-        { 
-          id: 4, 
-          emoji: '🎭', 
-          title: 'Old Biscuit Mill Market', 
-          description: 'Food stalls, fashion and local crafts.',
-          area: 'Woodstock',
-          location: 'Old Biscuit Mill',
-          price: 50,
-          category: 'Food & Drink',
-          date: '2026-03-17',
-          time: '09:00',
-          lat: -33.9273,
-          lng: 18.4484
-        },
-        { 
-          id: 5, 
-          emoji: '🎪', 
-          title: 'Beach Yoga Session', 
-          description: 'Morning yoga with ocean views.',
-          area: 'Clifton',
-          location: 'Clifton 4th Beach',
-          price: 150,
-          category: 'Wellness & Body',
-          date: '2026-03-18',
-          time: '07:00',
-          lat: -33.9398,
-          lng: 18.3762
-        },
-      ],
-      currentCardIndex: 0,
-      isDragging: false,
-      likedEvents: []
-    }
-  },
-  computed: {
-    visibleCards() {
-      // Show current card and next 2 cards for stack effect
-      return this.cardsData.slice(this.currentCardIndex, this.currentCardIndex + 3);
-    },
-    noCardsLeft() {
-      return this.currentCardIndex >= this.cardsData.length;
-    },
-    likedCount() {
-      return this.likedEvents.length;
-    }
-  },
-  mounted() {
-    // Load liked events from localStorage
-    const stored = localStorage.getItem('favourites')
-    if (stored) {
-      this.likedEvents = JSON.parse(stored)
-    }
-  },
-  methods: {
-    handleSwipeComplete(direction) {
-      console.log(`Card swiped ${direction}`);
-      
-      // Get the current card that was swiped
-      const swipedCard = this.cardsData[this.currentCardIndex];
-      
-      // Handle like/nope actions
-      if (direction === 'right') {
-        // User liked the card - add to favourites
-        this.addToFavourites(swipedCard);
-      }
-      
-      // Increment index to show next card
-      this.currentCardIndex++;
-    },
-    
-    addToFavourites(event) {
-      // Check if already in favourites
-      if (!this.likedEvents.some(e => e.id === event.id)) {
-        this.likedEvents.push(event);
-        
-        // Get existing favourites from localStorage
-        const favourites = JSON.parse(localStorage.getItem('favourites') || '[]');
-        
-        // Add if not already there
-        if (!favourites.some(fav => fav.id === event.id)) {
-          favourites.push(event);
-          localStorage.setItem('favourites', JSON.stringify(favourites));
-        }
-        
-        // Show a subtle notification
-        this.showNotification('Added to favourites!');
-      }
-    },
-    
-    showNotification(message) {
-      // Create a temporary notification
-      const notification = document.createElement('div');
-      notification.className = 'notification';
-      notification.textContent = message;
-      notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #4caf50, #45a049);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 50px;
-        box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-      `;
-      
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-          document.body.removeChild(notification);
-        }, 300);
-      }, 2000);
-    },
-    
-    handleDragStart() {
-      this.isDragging = true;
-    },
-    
-    handleDragEnd() {
-      this.isDragging = false;
-    },
-    
-    swipeCard(direction) {
-      // Prevent swiping if no cards left or currently dragging
-      if (this.noCardsLeft || this.isDragging) return;
-      
-      // Get the top card component (first in the refs array)
-      const topCard = this.$refs.cards?.[0];
-      if (topCard) {
-        topCard.programmaticSwipe(direction);
-      }
-    },
-    
-    resetCards() {
-      this.currentCardIndex = 0;
-    }
+const router = useRouter()
+const eventStore = useEventStore()
+const favouritesStore = useFavouritesStore()
+const authStore = useAuthStore()
+
+// State
+const currentEventIndex = ref(0)
+const isDragging = ref(false)
+const cards = ref([])
+const page = ref(1)
+const hasMoreEvents = ref(true)
+
+// Computed
+const visibleEvents = computed(() => {
+  // Show current event and next 2 events for stack effect
+  return eventStore.events.slice(currentEventIndex.value, currentEventIndex.value + 3)
+})
+
+const noEventsLeft = computed(() => {
+  return currentEventIndex.value >= eventStore.events.length
+})
+
+const remainingCount = computed(() => {
+  return eventStore.events.length - currentEventIndex.value
+})
+
+// Methods
+const handleSwipeComplete = async (direction, event) => {
+  console.log(`Event swiped ${direction}:`, event.title)
+  
+  // Handle like/nope actions
+  if (direction === 'right') {
+    // User liked the event - add to favourites
+    await favouritesStore.addToFavourites(event)
+    showNotification('Added to favourites!')
+  }
+  
+  // Increment index to show next event
+  currentEventIndex.value++
+  
+  // Check if we need to load more events
+  if (currentEventIndex.value >= eventStore.events.length - 2 && hasMoreEvents.value) {
+    await loadMoreEvents()
   }
 }
+
+const loadMoreEvents = async () => {
+  page.value++
+  await eventStore.fetchEvents({ 
+    page: page.value,
+    limit: 10,
+    ...getUserPreferences()
+  })
+  
+  if (eventStore.events.length === 0) {
+    hasMoreEvents.value = false
+  }
+}
+
+const getUserPreferences = () => {
+  const preferences = authStore.user?.preferences || {}
+  return {
+    categories: preferences.interests,
+    maxDistance: preferences.maxDistance,
+    location: preferences.location
+  }
+}
+
+const handleDragStart = () => {
+  isDragging.value = true
+}
+
+const handleDragEnd = () => {
+  isDragging.value = false
+}
+
+const swipeCard = (direction) => {
+  if (noEventsLeft.value || isDragging.value) return
+  
+  const topCard = cards.value?.[0]
+  if (topCard) {
+    topCard.programmaticSwipe(direction)
+  }
+}
+
+const showNotification = (message) => {
+  const notification = document.createElement('div')
+  notification.className = 'notification'
+  notification.textContent = message
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+  `
+  
+  document.body.appendChild(notification)
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease'
+    setTimeout(() => {
+      document.body.removeChild(notification)
+    }, 300)
+  }, 2000)
+}
+
+const resetEvents = () => {
+  currentEventIndex.value = 0
+  page.value = 1
+  hasMoreEvents.value = true
+  eventStore.fetchEvents({ 
+    page: 1,
+    limit: 10,
+    ...getUserPreferences()
+  })
+}
+
+// Lifecycle
+onMounted(async () => {
+  await eventStore.fetchEvents({ 
+    page: 1,
+    limit: 10,
+    ...getUserPreferences()
+  })
+  await favouritesStore.fetchFavourites()
+})
+
+// Watch for auth changes
+watch(() => authStore.user, () => {
+  resetEvents()
+})
 </script>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* Keep all existing styles from original Swipe.vue */
 .swipe-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
@@ -334,6 +288,27 @@ h1 {
 
 .stat-item i {
   font-size: 16px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: white;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #EEAECA;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .card-container {
@@ -516,7 +491,6 @@ h1 {
   }
 }
 
-/* Responsive adjustments */
 @media (max-width: 600px) {
   .swipe-header {
     flex-direction: column;
