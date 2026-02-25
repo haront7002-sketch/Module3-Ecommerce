@@ -201,10 +201,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useStore } from 'vuex'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const store = useStore()
 
 // State
 const searchQuery = ref('')
@@ -239,94 +239,40 @@ const interestCategories = [
   { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
 ]
 
-// Events data
-const events = ref([
-  {
-    id: 1,
-    emoji: '🎶',
-    title: 'V&A Waterfront Live Music',
-    area: 'V&A Waterfront',
-    location: 'Amphitheatre, V&A Waterfront',
-    description: 'Live performances and vibe near the harbor.',
-    price: 120,
-    category: 'Music & Nightlife',
-    date: '2026-03-15',
-    time: '18:00'
-  },
-  {
-    id: 2,
-    emoji: '⛰️',
-    title: 'Table Mountain Sunrise Hike',
-    area: 'Table Mountain',
-    location: 'Table Mountain National Park',
-    description: 'Guided hike with sunrise views.',
-    price: 250,
-    category: 'Sports & Adventure',
-    date: '2026-03-16',
-    time: '05:30'
-  },
-  {
-    id: 3,
-    emoji: '🌅',
-    title: 'Camps Bay Sunset Social',
-    area: 'Camps Bay',
-    location: 'Camps Bay Beach',
-    description: 'Sunset vibes, food & DJs on the strip.',
-    price: 180,
-    category: 'Social Vibes',
-    date: '2026-03-16',
-    time: '17:00'
-  },
-  {
-    id: 4,
-    emoji: '🛍️',
-    title: 'Old Biscuit Mill Market',
-    area: 'Woodstock',
-    location: 'Old Biscuit Mill',
-    description: 'Food stalls, fashion and local crafts.',
-    price: 50,
-    category: 'Food & Drink',
-    date: '2026-03-17',
-    time: '09:00'
-  },
-  {
-    id: 5,
-    emoji: '🧘',
-    title: 'Beach Yoga Session',
-    area: 'Clifton',
-    location: 'Clifton 4th Beach',
-    description: 'Morning yoga with ocean views.',
-    price: 150,
-    category: 'Wellness & Body',
-    date: '2026-03-18',
-    time: '07:00'
-  },
-  {
-    id: 6,
-    emoji: '🍷',
-    title: 'Wine Tasting Evening',
-    area: 'Constantia',
-    location: 'Groot Constantia',
-    description: 'Premium wine tasting with cheese pairing.',
-    price: 300,
-    category: 'Food & Drink',
-    date: '2026-03-19',
-    time: '18:30'
-  },
-  {
-    id: 7,
-    emoji: '🎨',
-    title: 'Art Workshop',
-    area: 'CBD',
-    location: 'Artscape Theatre Centre',
-    description: 'Learn painting techniques with local artists.',
-    price: 200,
-    category: 'Arts & Culture',
-    date: '2026-03-20',
-    time: '14:00'
-  }
-])
+// Computed properties from Vuex
+const events = computed(() => store.state.events)
+const favourites = computed(() => store.state.favourites)
 
+const filteredEvents = computed(() => {
+  let filtered = events.value
+  
+  // Filter by selected date
+  if (selectedDate.value) {
+    filtered = filtered.filter(event => event.date === selectedDate.value)
+  }
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(event => 
+      event.title.toLowerCase().includes(query) ||
+      event.area?.toLowerCase().includes(query) ||
+      event.description?.toLowerCase().includes(query) ||
+      event.category?.toLowerCase().includes(query)
+    )
+  }
+
+   return filtered.sort((a, b) => a.time?.localeCompare(b.time || ''))
+})
+
+const eventsThisMonth = computed(() => {
+  const currentMonth = currentDate.value.getMonth()
+  const currentYear = currentDate.value.getFullYear()
+  return events.value.filter(event => {
+    const eventDate = new Date(event.date)
+    return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+  }).length
+})
 // Computed
 const currentYear = computed(() => currentDate.value.getFullYear())
 const currentMonthName = computed(() => {
@@ -375,45 +321,6 @@ const calendarDays = computed(() => {
   }
   
   return days
-})
-
-const eventsThisMonth = computed(() => {
-  const currentMonth = currentDate.value.getMonth()
-  const currentYear = currentDate.value.getFullYear()
-  return events.value.filter(event => {
-    const eventDate = new Date(event.date)
-    return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
-  }).length
-})
-
-const filteredEvents = computed(() => {
-  let filtered = events.value
-  
-  // Filter by selected date
-  if (selectedDate.value) {
-    filtered = filtered.filter(event => event.date === selectedDate.value)
-  }
-  
-  // Filter by search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(event => 
-      event.title.toLowerCase().includes(query) ||
-      event.area.toLowerCase().includes(query) ||
-      event.description.toLowerCase().includes(query) ||
-      event.category.toLowerCase().includes(query)
-    )
-  }
-  
-  // Filter by selected categories
-  if (selectedCategories.value.length > 0) {
-    filtered = filtered.filter(event => 
-      selectedCategories.value.includes(event.category)
-    )
-  }
-  
-  // Sort by time
-  return filtered.sort((a, b) => a.time.localeCompare(b.time))
 })
 
 // Methods
@@ -477,43 +384,27 @@ const viewEventDetails = (event) => {
   selectedEvent.value = event
 }
 
-const likeEvent = (event) => {
-  // Get existing favourites
-  const favourites = JSON.parse(localStorage.getItem('favourites') || '[]')
-  
-  // Check if already in favourites
-  if (!favourites.some(fav => fav.id === event.id)) {
-    favourites.push(event)
-    localStorage.setItem('favourites', JSON.stringify(favourites))
-    
-    // Show notification
-    const notification = document.createElement('div')
-    notification.className = 'notification'
-    notification.textContent = 'Added to favourites!'
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #4caf50, #45a049);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 50px;
-      box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
-      z-index: 1000;
-      animation: slideIn 0.3s ease;
-    `
-    document.body.appendChild(notification)
-    
-    setTimeout(() => {
-      notification.style.animation = 'slideOut 0.3s ease'
-      setTimeout(() => {
-        document.body.removeChild(notification)
-      }, 300)
-    }, 2000)
+const likeEvent = async (event) => {
+   try {
+    await store.dispatch('addFavourite', event)
+    showNotification('Added to favourites!')
+  } catch (error) {
+    if (error.message === 'User not authenticated') {
+      showNotification('Please log in to add favourites', 'error')
+    } else {
+      showNotification('Error adding to favourites', 'error')
+    }
   }
 }
+  // Get existing favourites
+  // const favourites = JSON.parse(localStorage.getItem('favourites') || '[]')
+  
+  // // Check if already in favourites
+  // if (!favourites.some(fav => fav.id === event.id)) {
+  //   favourites.push(event)
+  //   localStorage.setItem('favourites', JSON.stringify(favourites))
 
-const bookEvent = (event) => {
+  const bookEvent = (event) => {
   router.push({
     name: 'payments',
     query: {
@@ -524,10 +415,62 @@ const bookEvent = (event) => {
     }
   })
 }
+    
+    // Show notification
+const showNotification = (message, type = 'success') => {
+  const notification = document.createElement('div')
+  notification.className = 'notification'
+  notification.textContent = message
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'success' ? 'linear-gradient(135deg, #4caf50, #45a049)' : 'linear-gradient(135deg, #ff6b6b, #ff5252)'};
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+  `
+    document.body.appendChild(notification)
+    
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease'
+      setTimeout(() => {
+        document.body.removeChild(notification)
+      }, 300)
+    }, 2000)
+  }
+
+  // Load events from API
+const loadEvents = async () => {
+  loading.value = true
+  try {
+    await store.dispatch('getEvents')
+  } catch (error) {
+    console.error('Error loading events:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Load user favourites if authenticated
+const loadFavourites = async () => {
+  if (store.state.isAuthenticated) {
+    try {
+         await store.dispatch('fetchFavourites')
+    } catch (error) {
+      console.error('Error loading favourites:', error)
+    }
+  }
+}
 
 // Load user preferences
 onMounted(() => {
   selectedDate.value = formatDateForComparison(new Date())
+  loadEvents()
+  loadFavourites()
 })
 </script>
 

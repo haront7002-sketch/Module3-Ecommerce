@@ -13,7 +13,9 @@ export default createStore({
     order: null,
     orders: [],
     tickets: [],
-    me: null
+    me: null,
+    token: localStorage.getItem('token') || null,
+    isAuthenticated: !!localStorage.getItem('token')
   },
   mutations: {
     setEvents(state, payload) {
@@ -45,6 +47,29 @@ export default createStore({
     },
     setMe(state, payload) {
       state.me = payload
+    },
+    setToken(state, token) {
+      state.token = token
+      state.isAuthenticated = !!token
+      if (token) {
+        localStorage.setItem('token', token)
+      } else {
+        localStorage.removeItem('token')
+      }
+    },
+    clearAuth(state) {
+      state.token = null
+      state.isAuthenticated = false
+      state.me = null
+      localStorage.removeItem('token')
+    },
+    addToFavourites(state, event) {
+      if (!state.favourites.some(f => f.id === event.id)) {
+        state.favourites.push(event)
+      }
+    },
+    removeFromFavourites(state, eventId) {
+      state.favourites = state.favourites.filter(f => f.id !== eventId)
     }
   },
   actions: {
@@ -237,6 +262,121 @@ export default createStore({
         method: 'DELETE'
       })
       return response.json()
+    },
+     async login({ commit }, credentials) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials)
+        })
+        const data = await response.json()
+        if (data.token) {
+          commit('setToken', data.token)
+          commit('setMe', data.user)
+        }
+        return data
+      } catch (error) {
+        console.error('Login error:', error)
+        throw error
+      }
+    },
+    
+    async register({ commit }, userData) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        })
+        const data = await response.json()
+        if (data.token) {
+          commit('setToken', data.token)
+          commit('setMe', data.user)
+        }
+        return data
+      } catch (error) {
+        console.error('Register error:', error)
+        throw error
+      }
+    },
+    
+    logout({ commit }) {
+      commit('clearAuth')
+    },
+    
+    async fetchMe({ commit, state }) {
+      if (!state.token) return
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${state.token}` }
+        })
+        const data = await response.json()
+        commit('setMe', data)
+        return data
+      } catch (error) {
+        console.error('Fetch me error:', error)
+        commit('clearAuth')
+        throw error
+      }
+    },
+    
+    // Favourites actions
+    async fetchFavourites({ commit, state }) {
+      if (!state.me?.id) return
+      try {
+        const response = await fetch(`${API_BASE_URL}/favourites/${state.me.id}`, {
+          headers: { Authorization: `Bearer ${state.token}` }
+        })
+        const { favourites } = await response.json()
+        commit('setFavourites', favourites)
+      } catch (error) {
+        console.error('Fetch favourites error:', error)
+      }
+    },
+    
+    async addFavourite({ commit, state }, event) {
+      if (!state.me?.id) throw new Error('User not authenticated')
+      try {
+        const response = await fetch(`${API_BASE_URL}/favourites`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ userId: state.me.id, eventId: event.id })
+        })
+        const data = await response.json()
+        if (data.success) {
+          commit('addToFavourites', event)
+        }
+        return data
+      } catch (error) {
+        console.error('Add favourite error:', error)
+        throw error
+      }
+    },
+    
+    async removeFavourite({ commit, state }, eventId) {
+      if (!state.me?.id) throw new Error('User not authenticated')
+      try {
+        const response = await fetch(`${API_BASE_URL}/favourites`, {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ userId: state.me.id, eventId })
+        })
+        const data = await response.json()
+        if (data.success) {
+          commit('removeFromFavourites', eventId)
+        }
+        return data
+      } catch (error) {
+        console.error('Remove favourite error:', error)
+        throw error
+      }
     }
   },
   modules: {}
