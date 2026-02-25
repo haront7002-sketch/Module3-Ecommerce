@@ -109,13 +109,54 @@
 <script>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useStore } from 'vuex'
 
-export default {
-  name: 'LoginSignup',
-  setup() {
-    const router = useRouter()
-    const authStore = useAuthStore()
+const router = useRouter()
+const store = useStore()
+
+// Generate unique ID for this component instance
+const uniqueId = Math.random().toString(36).substring(2, 10)
+const checkboxId = `reg-log-${uniqueId}`
+
+// State
+const isFlipped = ref(false)
+
+const loginForm = reactive({
+    email: '',
+    password: ''
+})
+
+const signupForm = reactive({
+    name: '',
+    surname: '',
+    email: '',
+    password: '',
+    areaCode: ''
+})
+
+// Cape Town area codes for reference
+const capeTownAreas = [
+    { code: '8001', area: 'Cape Town City Centre' },
+    { code: '8005', area: 'Sea Point' },
+    { code: '7700', area: 'Rondebosch' },
+    { code: '7708', area: 'Claremont' },
+    { code: '7800', area: 'Constantia' },
+    { code: '7945', area: 'Tokai' },
+    { code: '7806', area: 'Hout Bay' },
+    { code: '7441', area: 'Blouberg' },
+    { code: '7443', area: 'Parklands' },
+    { code: '7530', area: 'Bellville' },
+    { code: '7570', area: 'Durbanville' },
+    { code: '7640', area: 'Milnerton' },
+    { code: '7130', area: 'Somerset West' },
+    { code: '7140', area: 'Strand' },
+    { code: '7800', area: 'Kirstenhof' },
+    { code: '7945', area: 'Bergvliet' },
+    { code: '7800', area: 'Meadowridge' },
+    { code: '7708', area: 'Kenilworth' },
+    { code: '7945', area: 'Lakeside' },
+    { code: '7800', area: 'Muizenberg' }
+]
 
     // Generate unique ID for this component instance
     const uniqueId = Math.random().toString(36).substring(2, 10)
@@ -182,6 +223,20 @@ export default {
         // Reload the page to trigger animation in App.vue
         window.location.reload()
     }
+    
+    const userData = {
+      id: 'usr_' + Math.random().toString(36).slice(2, 11),
+      email: loginForm.email,
+      name: loginForm.email.split('@')[0],
+      profileComplete: true
+    }
+    store.commit('setToken', 'fake-jwt-token')
+    store.commit('setMe', userData)
+    localStorage.setItem('user', JSON.stringify(userData))
+    
+    alert(`Welcome back, ${loginForm.email}!`)
+    router.push('/')
+}
 
     const handleSignup = () => {
         console.log('Signup attempt:', signupForm)
@@ -222,6 +277,27 @@ export default {
         console.log('Forgot password clicked')
         alert('Password reset functionality would be implemented here')
     }
+    
+    // Get area name from code
+    const selectedArea = capeTownAreas.find(area => area.code === signupForm.areaCode)
+    const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
+    
+    const userData = {
+      id: 'usr_' + Math.random().toString(36).slice(2, 11),
+      name: signupForm.name,
+      surname: signupForm.surname,
+      fullName: `${signupForm.name} ${signupForm.surname}`,
+      email: signupForm.email,
+      location: location,
+      profileComplete: false
+    }
+    store.commit('setToken', 'fake-jwt-token')
+    store.commit('setMe', userData)
+    localStorage.setItem('user', JSON.stringify(userData))
+    
+    alert(`Welcome to the community, ${signupForm.name}! Let's set up your preferences.`)
+    router.push('/preferences')
+}
 
     return {
         checkboxId,

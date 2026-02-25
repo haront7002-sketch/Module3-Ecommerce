@@ -129,7 +129,7 @@
             </div>
             <div class="event-content">
               <div class="event-header">
-                <span class="event-emoji">{{ event.emoji || '🎉' }}</span>
+                <img :src="event.image_url || 'https://placehold.co/120x120?text=Event'" alt="Event image" class="event-image">
                 <h3 class="event-title">{{ event.title }}</h3>
               </div>
               <p class="event-description">{{ event.description }}</p>
@@ -175,7 +175,7 @@
           </button>
           
           <div class="modal-header">
-            <span class="modal-emoji">{{ selectedEvent.emoji || '🎉' }}</span>
+            <img :src="selectedEvent.image_url || 'https://placehold.co/280x160?text=Event'" alt="Event image" class="modal-image">
             <h2>{{ selectedEvent.title }}</h2>
           </div>
 
@@ -224,14 +224,10 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useEventStore } from '@/stores/event'
-import { useFavouritesStore } from '@/stores/favourites'
-import { useAuthStore } from '@/stores/auth'
+import { useStore } from 'vuex'
 
 const router = useRouter()
-const eventStore = useEventStore()
-const favouritesStore = useFavouritesStore()
-const authStore = useAuthStore()
+const store = useStore()
 
 // State
 const searchQuery = ref('')
@@ -240,8 +236,71 @@ const selectedEvent = ref(null)
 const page = ref(1)
 const hasMoreEvents = ref(true)
 const selectedCategories = ref([])
-const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+// Interest categories from preferences
+const interestCategories = [
+  { id: 1, name: 'Social Vibes', emoji: '🎉' },
+  { id: 2, name: 'Intellectual & Skills', emoji: '🧠' },
+  { id: 3, name: 'Arts & Culture', emoji: '🎨' },
+  { id: 4, name: 'Wellness & Body', emoji: '🧘' },
+  { id: 5, name: 'Creative Making', emoji: '✂️' },
+  { id: 6, name: 'Community & Cause', emoji: '🤝' },
+  { id: 7, name: 'Professional Networking', emoji: '💼' },
+  { id: 8, name: 'Life Stages & Niches', emoji: '🌱' },
+  { id: 9, name: 'Seasonal Annual', emoji: '🎪' },
+  { id: 10, name: 'Weird & Hyperlocal', emoji: '🌀' },
+  { id: 11, name: 'Food & Drink', emoji: '🍽️' },
+  { id: 12, name: 'Music & Nightlife', emoji: '🎵' },
+  { id: 13, name: 'Sports & Adventure', emoji: '⚽' },
+  { id: 14, name: 'Family & Kids', emoji: '👨‍👩‍👧' },
+  { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
+]
+
+// Computed properties from Vuex
+const events = computed(() =>
+  (store.state.events || []).map((event) => ({
+    ...event,
+    id: event.id ?? event.event_id,
+    title: event.title ?? event.event_title ?? 'Untitled Event',
+    area: event.area ?? event.location ?? 'Unknown',
+    date: event.date ?? null,
+    time: event.time ?? '',
+    category: event.category ?? event.category_name ?? 'General',
+    image_url: event.image_url ?? ''
+  }))
+)
+
+const filteredEvents = computed(() => {
+  let filtered = events.value
+  
+  // Filter by selected date
+  if (selectedDate.value) {
+    filtered = filtered.filter(event => event.date === selectedDate.value)
+  }
+  
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(event => 
+      String(event.title || '').toLowerCase().includes(query) ||
+      String(event.area || '').toLowerCase().includes(query) ||
+      String(event.description || '').toLowerCase().includes(query) ||
+      String(event.category || '').toLowerCase().includes(query)
+    )
+  }
+
+   return filtered.sort((a, b) => a.time?.localeCompare(b.time || ''))
+})
+
+const eventsThisMonth = computed(() => {
+  const currentMonth = currentDate.value.getMonth()
+  const currentYear = currentDate.value.getFullYear()
+  return events.value.filter(event => {
+    if (!event.date) return false
+    const eventDate = new Date(event.date)
+    return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+  }).length
+})
 // Computed
 const currentYear = computed(() => eventStore.currentMonth.getFullYear())
 const currentMonthName = computed(() => {
@@ -300,13 +359,6 @@ const calendarDays = computed(() => {
   }
   
   return days
-})
-
-const interestCategories = computed(() => {
-  return authStore.user?.preferences?.interests?.map(name => ({
-    name,
-    emoji: getEmojiForCategory(name)
-  })) || []
 })
 
 // Methods
@@ -395,68 +447,40 @@ const viewEventDetails = (event) => {
   selectedEvent.value = event
 }
 
-const isFavourite = (eventId) => {
-  return favouritesStore.favouriteIds.includes(eventId)
-}
-
-const toggleFavourite = async (event) => {
-  if (isFavourite(event.id)) {
-    await favouritesStore.removeFromFavourites(event.id)
-    showNotification('Removed from favourites')
-  } else {
-    await favouritesStore.addToFavourites(event)
+const likeEvent = async (event) => {
+   try {
+    await store.dispatch('addFavourite', event)
     showNotification('Added to favourites!')
+  } catch (error) {
+    if (error.message === 'User not authenticated') {
+      showNotification('Please log in to add favourites', 'error')
+    } else {
+      showNotification('Error adding to favourites', 'error')
+    }
   }
 }
+  // Get existing favourites
+  // const favourites = JSON.parse(localStorage.getItem('favourites') || '[]')
+  
+  // // Check if already in favourites
+  // if (!favourites.some(fav => fav.id === event.id)) {
+  //   favourites.push(event)
+  //   localStorage.setItem('favourites', JSON.stringify(favourites))
 
-const bookEvent = (event) => {
+  const bookEvent = (event) => {
   router.push({
     name: 'payments',
     query: {
       eventId: event.id,
       title: event.title,
-      date: formatDate(event.startDate) + ' • ' + formatTime(event.startDate),
+      date: formatDate(event.date) + ' • ' + event.time,
       price: event.price
     }
   })
 }
-
-const loadMoreEvents = async () => {
-  page.value++
-  await eventStore.fetchEvents({ 
-    page: page.value,
-    limit: 20,
-    ...(eventStore.selectedDate && { date: eventStore.selectedDate }),
-    ...(selectedCategories.value.length > 0 && { categories: selectedCategories.value })
-  })
-  
-  if (eventStore.events.length === 0) {
-    hasMoreEvents.value = false
-  }
-}
-
-const getEmojiForCategory = (category) => {
-  const emojiMap = {
-    'Social Vibes': '🎉',
-    'Intellectual & Skills': '🧠',
-    'Arts & Culture': '🎨',
-    'Wellness & Body': '🧘',
-    'Creative Making': '✂️',
-    'Community & Cause': '🤝',
-    'Professional Networking': '💼',
-    'Life Stages & Niches': '🌱',
-    'Seasonal Annual': '🎪',
-    'Weird & Hyperlocal': '🌀',
-    'Food & Drink': '🍽️',
-    'Music & Nightlife': '🎵',
-    'Sports & Adventure': '⚽',
-    'Family & Kids': '👨‍👩‍👧',
-    'Spirituality & Mindfulness': '🕊️'
-  }
-  return emojiMap[category] || '🎉'
-}
-
-const showNotification = (message) => {
+    
+    // Show notification
+const showNotification = (message, type = 'success') => {
   const notification = document.createElement('div')
   notification.className = 'notification'
   notification.textContent = message
@@ -464,38 +488,52 @@ const showNotification = (message) => {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: linear-gradient(135deg, #4caf50, #45a049);
+    background: ${type === 'success' ? 'linear-gradient(135deg, #4caf50, #45a049)' : 'linear-gradient(135deg, #ff6b6b, #ff5252)'};
     color: white;
     padding: 12px 24px;
     border-radius: 50px;
-    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     z-index: 1000;
     animation: slideIn 0.3s ease;
   `
-  document.body.appendChild(notification)
-  
-  setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease'
+    document.body.appendChild(notification)
+    
     setTimeout(() => {
-      document.body.removeChild(notification)
-    }, 300)
-  }, 2000)
+      notification.style.animation = 'slideOut 0.3s ease'
+      setTimeout(() => {
+        document.body.removeChild(notification)
+      }, 300)
+    }, 2000)
+  }
+
+  // Load events from API
+const loadEvents = async () => {
+  loading.value = true
+  try {
+    await store.dispatch('getEvents')
+  } catch (error) {
+    console.error('Error loading events:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-// Lifecycle
-onMounted(async () => {
-  await fetchEventsForMonth()
-  await favouritesStore.fetchFavourites()
-})
+// Load user favourites if authenticated
+const loadFavourites = async () => {
+  if (store.state.isAuthenticated) {
+    try {
+         await store.dispatch('fetchFavourites')
+    } catch (error) {
+      console.error('Error loading favourites:', error)
+    }
+  }
+}
 
-// Watch for filter changes
-watch(() => eventStore.selectedDate, async () => {
-  page.value = 1
-  await eventStore.fetchEvents({ 
-    date: eventStore.selectedDate,
-    page: 1,
-    limit: 20
-  })
+// Load user preferences
+onMounted(() => {
+  selectedDate.value = formatDateForComparison(new Date())
+  loadEvents()
+  loadFavourites()
 })
 </script>
 
@@ -914,8 +952,12 @@ h1 {
   margin-bottom: 10px;
 }
 
-.event-emoji {
-  font-size: 24px;
+.event-image {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .event-title {
@@ -931,6 +973,7 @@ h1 {
   margin-bottom: 15px;
   line-height: 1.4;
 }
+
 
 .event-meta {
   display: flex;
@@ -1138,8 +1181,11 @@ h1 {
   border-radius: 20px 20px 0 0;
 }
 
-.modal-emoji {
-  font-size: 60px;
+.modal-image {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
   margin-bottom: 15px;
   display: block;
 }

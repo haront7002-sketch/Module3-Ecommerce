@@ -91,16 +91,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue"
-import { useRouter } from "vue-router"
-import { useEventStore } from "@/stores/event"
-import { useFavouritesStore } from "@/stores/favourites"
-import { useAuthStore } from "@/stores/auth"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 
-const router = useRouter()
-const eventStore = useEventStore()
-const favouritesStore = useFavouritesStore()
-const authStore = useAuthStore()
+const router = useRouter();
+const store = useStore();
+const mapEl = ref(null);
+let map = null;
+let L = null;
+const markerById = new Map();
+const query = ref("");
 
 // Load Leaflet from CDN dynamically
 const loadLeaflet = () => {
@@ -131,28 +132,22 @@ const loadLeaflet = () => {
   });
 };
 
-const mapEl = ref(null);
-let map = null;
-let L = null;
-const page = ref(1);
-const hasMoreEvents = ref(true);
-const query = ref("");
-const userLocation = ref(authStore.user?.location || "Cape Town");
+// Events from Vuex
+const events = computed(() => store.state.events);
 
-// Keep marker references
-const markerById = new Map();
-
-// Computed
-const userLatLng = computed(() => {
-  return authStore.user?.preferences?.location?.coordinates || { lat: -33.9249, lng: 18.4241 }
-})
-
-// Methods
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
-}
+// Filtered events
+const filteredEvents = computed(() => {
+  const q = query.value.toLowerCase().trim();
+  if (!q) return events.value;
+  return events.value.filter((e) => {
+    return (
+      e.title.toLowerCase().includes(q) ||
+      e.area.toLowerCase().includes(q) ||
+      e.description.toLowerCase().includes(q) ||
+      e.category.toLowerCase().includes(q)
+    );
+  });
+});
 
 // Popup HTML
 const popupHtml = (ev) => {
@@ -163,18 +158,12 @@ const popupHtml = (ev) => {
         <div style="font-size:22px; line-height:1;">${ev.emoji || '🎉'}</div>
         <div>
           <h3 style="margin:0 0 6px; font-size:14px; color:#333;">${ev.title}</h3>
-          <div style="margin:0 0 6px; color:#666; font-size:12px;">${ev.location?.area || ev.area}</div>
-          <div style="margin:0 0 6px; font-size:12px;">${formatDate(ev.startDate)}</div>
-          <div style="margin:0 0 8px; font-size:12px; color:#444;">${ev.description.substring(0, 60)}${ev.description.length > 60 ? '...' : ''}</div>
-          <div style="margin:0 0 10px; font-size:12px;"><b style="color:#333;">Price:</b> <span style="color:#4caf50;">R ${ev.price}</span></div>
-          <div style="display:flex; gap:5px;">
-            <button id="fav-${ev.id}" style="padding:8px;border-radius:20px;border:0;background:${isFav ? '#ff6b6b' : '#f0f0f0'};color:${isFav ? 'white' : '#333'};cursor:pointer;flex:1;">
-              ${isFav ? '❤️ Saved' : '🤍 Save'}
-            </button>
-            <button id="pay-${ev.id}" style="padding:8px;border-radius:20px;border:0;background:#4caf50;color:#fff;cursor:pointer;flex:1;">
-              Book
-            </button>
-          </div>
+          <div style="margin:0 0 6px; color:#666; font-size:12px;">${ev.area || ''}</div>
+          <div style="margin:0 0 8px; font-size:12px; color:#444;">${ev.description || ''}</div>
+          <div style="margin:0 0 10px; font-size:12px;"><b style="color:#333;">Price:</b> <span style="color:#4caf50;">R ${ev.price || 0}</span></div>
+          <button id="pay-${ev.id}" style="padding:8px 12px;border-radius:20px;border:0;background:#4caf50;color:#fff;cursor:pointer;width:100%;">
+            Book Tickets
+          </button>
         </div>
       </div>
     </div>
