@@ -6,13 +6,13 @@
         <div class="logo">SOS</div>
         <div>
           <h1>Explore Events</h1>
-          <p class="subtitle">Discover what's happening in Cape Town</p>
+          <p class="subtitle">Discover what's happening in {{ userLocation || 'Cape Town' }}</p>
         </div>
       </div>
 
       <div class="stats">
         <span class="stat-item">
-          <i class="uil uil-calendar-alt"></i> {{ eventsThisMonth }} this month
+          <i class="uil uil-calendar-alt"></i> {{ eventStore.eventsThisMonth }} this month
         </span>
       </div>
     </div>
@@ -26,6 +26,7 @@
           type="text" 
           class="search-input" 
           placeholder="Search events by title, location, or category..."
+          @input="handleSearch"
         >
       </div>
       <button class="filter-btn" @click="showFilters = !showFilters">
@@ -50,6 +51,15 @@
               <span>{{ category.name }}</span>
             </button>
           </div>
+        </div>
+        
+        <div class="filter-actions">
+          <button class="filter-action-btn clear" @click="clearFilters">
+            Clear All
+          </button>
+          <button class="filter-action-btn apply" @click="applyFilters">
+            Apply Filters
+          </button>
         </div>
       </div>
     </transition>
@@ -79,7 +89,7 @@
               'other-month': !day.isCurrentMonth,
               'today': isToday(day.date),
               'has-events': hasEventsOnDate(day.date),
-              'selected': selectedDate === day.date
+              'selected': eventStore.selectedDate === day.date
             }"
             @click="selectDate(day.date)"
           >
@@ -92,16 +102,16 @@
       <!-- Events List -->
       <div class="events-panel glass-card">
         <div class="events-header">
-          <h2>{{ selectedDate ? formatDateHeader(selectedDate) : 'Select a date' }}</h2>
-          <span class="event-count">{{ filteredEvents.length }} events</span>
+          <h2>{{ selectedDateLabel }}</h2>
+          <span class="event-count">{{ eventStore.filteredEvents.length }} events</span>
         </div>
 
-        <div v-if="loading" class="loading-state">
+        <div v-if="eventStore.loading" class="loading-state">
           <div class="loader"></div>
           <p>Loading events...</p>
         </div>
 
-        <div v-else-if="filteredEvents.length === 0" class="empty-state">
+        <div v-else-if="eventStore.filteredEvents.length === 0" class="empty-state">
           <i class="uil uil-calendar-slash"></i>
           <h3>No events found</h3>
           <p>Try selecting a different date or adjusting your filters</p>
@@ -109,23 +119,23 @@
 
         <div v-else class="events-list">
           <div 
-            v-for="event in filteredEvents" 
+            v-for="event in eventStore.filteredEvents" 
             :key="event.id"
             class="event-card glass-card"
             @click="viewEventDetails(event)"
           >
             <div class="event-time">
-              <span class="time">{{ formatTime(event.time) }}</span>
+              <span class="time">{{ formatTime(event.startDate) }}</span>
             </div>
             <div class="event-content">
               <div class="event-header">
-                <span class="event-emoji">{{ event.emoji }}</span>
+                <span class="event-emoji">{{ event.emoji || '🎉' }}</span>
                 <h3 class="event-title">{{ event.title }}</h3>
               </div>
               <p class="event-description">{{ event.description }}</p>
               <div class="event-meta">
                 <span class="meta-item">
-                  <i class="uil uil-location-point"></i> {{ event.area }}
+                  <i class="uil uil-location-point"></i> {{ event.location?.area || event.area }}
                 </span>
                 <span class="meta-item">
                   <i class="uil uil-tag"></i> {{ event.category }}
@@ -135,8 +145,8 @@
                 </span>
               </div>
               <div class="event-actions">
-                <button class="action-btn like" @click.stop="likeEvent(event)">
-                  <i class="uil uil-heart"></i>
+                <button class="action-btn like" @click.stop="toggleFavourite(event)">
+                  <i class="uil" :class="isFavourite(event.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 </button>
                 <button class="action-btn book" @click.stop="bookEvent(event)">
                   Book Now
@@ -144,6 +154,14 @@
               </div>
             </div>
           </div>
+        </div>
+        
+        <!-- Load More Button -->
+        <div v-if="hasMoreEvents" class="load-more">
+          <button @click="loadMoreEvents" class="load-more-btn" :disabled="eventStore.loading">
+            <span v-if="eventStore.loading" class="loader-small"></span>
+            <span v-else>Load More Events</span>
+          </button>
         </div>
       </div>
     </div>
@@ -157,7 +175,7 @@
           </button>
           
           <div class="modal-header">
-            <span class="modal-emoji">{{ selectedEvent.emoji }}</span>
+            <span class="modal-emoji">{{ selectedEvent.emoji || '🎉' }}</span>
             <h2>{{ selectedEvent.title }}</h2>
           </div>
 
@@ -165,11 +183,11 @@
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
-                <span>{{ formatDate(selectedEvent.date) }} at {{ formatTime(selectedEvent.time) }}</span>
+                <span>{{ formatDate(selectedEvent.startDate) }} at {{ formatTime(selectedEvent.startDate) }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-location-point"></i>
-                <span>{{ selectedEvent.location }}, {{ selectedEvent.area }}</span>
+                <span>{{ selectedEvent.location?.address }}, {{ selectedEvent.location?.area }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-tag"></i>
@@ -179,13 +197,18 @@
                 <i class="uil uil-dollar-alt"></i>
                 <span>R {{ selectedEvent.price }} per ticket</span>
               </div>
+              <div class="info-row">
+                <i class="uil uil-users-alt"></i>
+                <span>{{ selectedEvent.availableSpots }} spots left</span>
+              </div>
             </div>
 
             <p class="modal-description">{{ selectedEvent.description }}</p>
 
             <div class="modal-actions">
-              <button class="modal-btn like" @click="likeEvent(selectedEvent)">
-                <i class="uil uil-heart"></i> Add to Favourites
+              <button class="modal-btn like" @click="toggleFavourite(selectedEvent)">
+                <i class="uil" :class="isFavourite(selectedEvent.id) ? 'uil-heart-break' : 'uil-heart'"></i>
+                {{ isFavourite(selectedEvent.id) ? 'Remove from Favourites' : 'Add to Favourites' }}
               </button>
               <button class="modal-btn book" @click="bookEvent(selectedEvent)">
                 Book Tickets
@@ -199,143 +222,45 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useEventStore } from '@/stores/event'
+import { useFavouritesStore } from '@/stores/favourites'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const eventStore = useEventStore()
+const favouritesStore = useFavouritesStore()
 const authStore = useAuthStore()
 
 // State
 const searchQuery = ref('')
 const showFilters = ref(false)
-const selectedDate = ref(null)
 const selectedEvent = ref(null)
-const loading = ref(false)
-
-// Date state
-const currentDate = ref(new Date())
+const page = ref(1)
+const hasMoreEvents = ref(true)
+const selectedCategories = ref([])
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-// Selected categories for filtering
-const selectedCategories = ref([])
-
-// Interest categories from preferences
-const interestCategories = [
-  { id: 1, name: 'Social Vibes', emoji: '🎉' },
-  { id: 2, name: 'Intellectual & Skills', emoji: '🧠' },
-  { id: 3, name: 'Arts & Culture', emoji: '🎨' },
-  { id: 4, name: 'Wellness & Body', emoji: '🧘' },
-  { id: 5, name: 'Creative Making', emoji: '✂️' },
-  { id: 6, name: 'Community & Cause', emoji: '🤝' },
-  { id: 7, name: 'Professional Networking', emoji: '💼' },
-  { id: 8, name: 'Life Stages & Niches', emoji: '🌱' },
-  { id: 9, name: 'Seasonal Annual', emoji: '🎪' },
-  { id: 10, name: 'Weird & Hyperlocal', emoji: '🌀' },
-  { id: 11, name: 'Food & Drink', emoji: '🍽️' },
-  { id: 12, name: 'Music & Nightlife', emoji: '🎵' },
-  { id: 13, name: 'Sports & Adventure', emoji: '⚽' },
-  { id: 14, name: 'Family & Kids', emoji: '👨‍👩‍👧' },
-  { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
-]
-
-// Events data
-const events = ref([
-  {
-    id: 1,
-    emoji: '🎶',
-    title: 'V&A Waterfront Live Music',
-    area: 'V&A Waterfront',
-    location: 'Amphitheatre, V&A Waterfront',
-    description: 'Live performances and vibe near the harbor.',
-    price: 120,
-    category: 'Music & Nightlife',
-    date: '2026-03-15',
-    time: '18:00'
-  },
-  {
-    id: 2,
-    emoji: '⛰️',
-    title: 'Table Mountain Sunrise Hike',
-    area: 'Table Mountain',
-    location: 'Table Mountain National Park',
-    description: 'Guided hike with sunrise views.',
-    price: 250,
-    category: 'Sports & Adventure',
-    date: '2026-03-16',
-    time: '05:30'
-  },
-  {
-    id: 3,
-    emoji: '🌅',
-    title: 'Camps Bay Sunset Social',
-    area: 'Camps Bay',
-    location: 'Camps Bay Beach',
-    description: 'Sunset vibes, food & DJs on the strip.',
-    price: 180,
-    category: 'Social Vibes',
-    date: '2026-03-16',
-    time: '17:00'
-  },
-  {
-    id: 4,
-    emoji: '🛍️',
-    title: 'Old Biscuit Mill Market',
-    area: 'Woodstock',
-    location: 'Old Biscuit Mill',
-    description: 'Food stalls, fashion and local crafts.',
-    price: 50,
-    category: 'Food & Drink',
-    date: '2026-03-17',
-    time: '09:00'
-  },
-  {
-    id: 5,
-    emoji: '🧘',
-    title: 'Beach Yoga Session',
-    area: 'Clifton',
-    location: 'Clifton 4th Beach',
-    description: 'Morning yoga with ocean views.',
-    price: 150,
-    category: 'Wellness & Body',
-    date: '2026-03-18',
-    time: '07:00'
-  },
-  {
-    id: 6,
-    emoji: '🍷',
-    title: 'Wine Tasting Evening',
-    area: 'Constantia',
-    location: 'Groot Constantia',
-    description: 'Premium wine tasting with cheese pairing.',
-    price: 300,
-    category: 'Food & Drink',
-    date: '2026-03-19',
-    time: '18:30'
-  },
-  {
-    id: 7,
-    emoji: '🎨',
-    title: 'Art Workshop',
-    area: 'CBD',
-    location: 'Artscape Theatre Centre',
-    description: 'Learn painting techniques with local artists.',
-    price: 200,
-    category: 'Arts & Culture',
-    date: '2026-03-20',
-    time: '14:00'
-  }
-])
-
 // Computed
-const currentYear = computed(() => currentDate.value.getFullYear())
+const currentYear = computed(() => eventStore.currentMonth.getFullYear())
 const currentMonthName = computed(() => {
-  return currentDate.value.toLocaleString('default', { month: 'long' })
+  return eventStore.currentMonth.toLocaleString('default', { month: 'long' })
+})
+
+const userLocation = computed(() => {
+  return authStore.user?.location || 'Cape Town'
+})
+
+const selectedDateLabel = computed(() => {
+  if (!eventStore.selectedDate) return 'All Events'
+  const options = { weekday: 'long', month: 'long', day: 'numeric' }
+  return new Date(eventStore.selectedDate).toLocaleDateString(undefined, options)
 })
 
 const calendarDays = computed(() => {
   const year = currentYear.value
-  const month = currentDate.value.getMonth()
+  const month = eventStore.currentMonth.getMonth()
   
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
@@ -377,43 +302,11 @@ const calendarDays = computed(() => {
   return days
 })
 
-const eventsThisMonth = computed(() => {
-  const currentMonth = currentDate.value.getMonth()
-  const currentYear = currentDate.value.getFullYear()
-  return events.value.filter(event => {
-    const eventDate = new Date(event.date)
-    return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
-  }).length
-})
-
-const filteredEvents = computed(() => {
-  let filtered = events.value
-  
-  // Filter by selected date
-  if (selectedDate.value) {
-    filtered = filtered.filter(event => event.date === selectedDate.value)
-  }
-  
-  // Filter by search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(event => 
-      event.title.toLowerCase().includes(query) ||
-      event.area.toLowerCase().includes(query) ||
-      event.description.toLowerCase().includes(query) ||
-      event.category.toLowerCase().includes(query)
-    )
-  }
-  
-  // Filter by selected categories
-  if (selectedCategories.value.length > 0) {
-    filtered = filtered.filter(event => 
-      selectedCategories.value.includes(event.category)
-    )
-  }
-  
-  // Sort by time
-  return filtered.sort((a, b) => a.time.localeCompare(b.time))
+const interestCategories = computed(() => {
+  return authStore.user?.preferences?.interests?.map(name => ({
+    name,
+    emoji: getEmojiForCategory(name)
+  })) || []
 })
 
 // Methods
@@ -424,44 +317,57 @@ const formatDateForComparison = (date) => {
   return `${year}-${month}-${day}`
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const options = { year: 'numeric', month: 'long', day: 'numeric' }
+  return new Date(dateString).toLocaleDateString(undefined, options)
+}
+
+const formatTime = (dateString) => {
+  if (!dateString) return ''
+  const options = { hour: '2-digit', minute: '2-digit' }
+  return new Date(dateString).toLocaleTimeString(undefined, options)
+}
+
 const isToday = (dateString) => {
   const today = formatDateForComparison(new Date())
   return dateString === today
 }
 
 const hasEventsOnDate = (dateString) => {
-  return events.value.some(event => event.date === dateString)
+  return eventStore.eventsByDate[new Date(dateString).toDateString()]?.length > 0
 }
 
 const selectDate = (date) => {
-  selectedDate.value = date
-  loading.value = true
-  // Simulate loading
-  setTimeout(() => {
-    loading.value = false
-  }, 500)
+  eventStore.setDateFilter(date)
 }
 
 const previousMonth = () => {
-  currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() - 1))
+  eventStore.previousMonth()
+  fetchEventsForMonth()
 }
 
 const nextMonth = () => {
-  currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() + 1))
+  eventStore.nextMonth()
+  fetchEventsForMonth()
 }
 
-const formatDate = (dateString) => {
-  const options = { year: 'numeric', month: 'long', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
+const fetchEventsForMonth = async () => {
+  const year = currentYear.value
+  const month = String(eventStore.currentMonth.getMonth() + 1).padStart(2, '0')
+  const startDate = `${year}-${month}-01`
+  const endDate = `${year}-${month}-${new Date(year, eventStore.currentMonth.getMonth() + 1, 0).getDate()}`
+  
+  await eventStore.fetchEvents({
+    startDate,
+    endDate,
+    page: 1,
+    limit: 50
+  })
 }
 
-const formatDateHeader = (dateString) => {
-  const options = { weekday: 'long', month: 'long', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
-}
-
-const formatTime = (timeString) => {
-  return timeString
+const handleSearch = async () => {
+  await eventStore.searchEvents(searchQuery.value)
 }
 
 const toggleCategory = (category) => {
@@ -473,43 +379,33 @@ const toggleCategory = (category) => {
   }
 }
 
+const applyFilters = () => {
+  eventStore.setCategoryFilter(selectedCategories.value)
+  showFilters.value = false
+}
+
+const clearFilters = () => {
+  selectedCategories.value = []
+  eventStore.clearFilters()
+  searchQuery.value = ''
+  showFilters.value = false
+}
+
 const viewEventDetails = (event) => {
   selectedEvent.value = event
 }
 
-const likeEvent = (event) => {
-  // Get existing favourites
-  const favourites = JSON.parse(localStorage.getItem('favourites') || '[]')
-  
-  // Check if already in favourites
-  if (!favourites.some(fav => fav.id === event.id)) {
-    favourites.push(event)
-    localStorage.setItem('favourites', JSON.stringify(favourites))
-    
-    // Show notification
-    const notification = document.createElement('div')
-    notification.className = 'notification'
-    notification.textContent = 'Added to favourites!'
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #4caf50, #45a049);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 50px;
-      box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
-      z-index: 1000;
-      animation: slideIn 0.3s ease;
-    `
-    document.body.appendChild(notification)
-    
-    setTimeout(() => {
-      notification.style.animation = 'slideOut 0.3s ease'
-      setTimeout(() => {
-        document.body.removeChild(notification)
-      }, 300)
-    }, 2000)
+const isFavourite = (eventId) => {
+  return favouritesStore.favouriteIds.includes(eventId)
+}
+
+const toggleFavourite = async (event) => {
+  if (isFavourite(event.id)) {
+    await favouritesStore.removeFromFavourites(event.id)
+    showNotification('Removed from favourites')
+  } else {
+    await favouritesStore.addToFavourites(event)
+    showNotification('Added to favourites!')
   }
 }
 
@@ -519,26 +415,98 @@ const bookEvent = (event) => {
     query: {
       eventId: event.id,
       title: event.title,
-      date: formatDate(event.date) + ' • ' + event.time,
+      date: formatDate(event.startDate) + ' • ' + formatTime(event.startDate),
       price: event.price
     }
   })
 }
 
-// Load user preferences
-onMounted(() => {
-  selectedDate.value = formatDateForComparison(new Date())
+const loadMoreEvents = async () => {
+  page.value++
+  await eventStore.fetchEvents({ 
+    page: page.value,
+    limit: 20,
+    ...(eventStore.selectedDate && { date: eventStore.selectedDate }),
+    ...(selectedCategories.value.length > 0 && { categories: selectedCategories.value })
+  })
+  
+  if (eventStore.events.length === 0) {
+    hasMoreEvents.value = false
+  }
+}
+
+const getEmojiForCategory = (category) => {
+  const emojiMap = {
+    'Social Vibes': '🎉',
+    'Intellectual & Skills': '🧠',
+    'Arts & Culture': '🎨',
+    'Wellness & Body': '🧘',
+    'Creative Making': '✂️',
+    'Community & Cause': '🤝',
+    'Professional Networking': '💼',
+    'Life Stages & Niches': '🌱',
+    'Seasonal Annual': '🎪',
+    'Weird & Hyperlocal': '🌀',
+    'Food & Drink': '🍽️',
+    'Music & Nightlife': '🎵',
+    'Sports & Adventure': '⚽',
+    'Family & Kids': '👨‍👩‍👧',
+    'Spirituality & Mindfulness': '🕊️'
+  }
+  return emojiMap[category] || '🎉'
+}
+
+const showNotification = (message) => {
+  const notification = document.createElement('div')
+  notification.className = 'notification'
+  notification.textContent = message
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+  `
+  document.body.appendChild(notification)
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease'
+    setTimeout(() => {
+      document.body.removeChild(notification)
+    }, 300)
+  }, 2000)
+}
+
+// Lifecycle
+onMounted(async () => {
+  await fetchEventsForMonth()
+  await favouritesStore.fetchFavourites()
+})
+
+// Watch for filter changes
+watch(() => eventStore.selectedDate, async () => {
+  page.value = 1
+  await eventStore.fetchEvents({ 
+    date: eventStore.selectedDate,
+    page: 1,
+    limit: 20
+  })
 })
 </script>
 
 <style scoped>
+/* Keep all the existing styles from original Explore.vue */
 .explore-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
   padding: 20px;
 }
 
-/* Glass Card Effect */
 .glass-card {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -547,7 +515,6 @@ onMounted(() => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Header */
 .explore-header {
   display: flex;
   justify-content: space-between;
@@ -605,7 +572,6 @@ h1 {
   font-weight: 500;
 }
 
-/* Search Section */
 .search-section {
   display: flex;
   gap: 15px;
@@ -668,7 +634,6 @@ h1 {
   transform: translateY(-2px);
 }
 
-/* Filter Panel */
 .filter-panel {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -688,6 +653,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-bottom: 20px;
 }
 
 .filter-chip {
@@ -715,7 +681,43 @@ h1 {
   border-color: transparent;
 }
 
-/* Main Layout */
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.filter-action-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-action-btn.clear {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.filter-action-btn.clear:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.filter-action-btn.apply {
+  background: #4caf50;
+  color: white;
+}
+
+.filter-action-btn.apply:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
 .explore-main {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -729,7 +731,6 @@ h1 {
   }
 }
 
-/* Calendar Panel */
 .calendar-panel {
   padding: 20px;
   height: fit-content;
@@ -826,7 +827,6 @@ h1 {
   margin-top: 2px;
 }
 
-/* Events Panel */
 .events-panel {
   padding: 20px;
 }
@@ -856,7 +856,6 @@ h1 {
   font-weight: 500;
 }
 
-/* Events List */
 .events-list {
   display: flex;
   flex-direction: column;
@@ -996,7 +995,6 @@ h1 {
   box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
 }
 
-/* Loading State */
 .loading-state {
   text-align: center;
   padding: 60px 20px;
@@ -1013,12 +1011,21 @@ h1 {
   margin: 0 auto 20px;
 }
 
+.loader-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* Empty State */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -1040,7 +1047,33 @@ h1 {
   color: rgba(255,255,255,0.8);
 }
 
-/* Modal */
+.load-more {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.load-more-btn {
+  padding: 12px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1192,7 +1225,6 @@ h1 {
   box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
 }
 
-/* Transitions */
 .slide-enter-active,
 .slide-leave-active {
   transition: all 0.3s ease;
