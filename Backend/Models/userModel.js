@@ -48,6 +48,30 @@ const User = {
         return rows[0];
     },
 
+    // Update country and zip code
+    updateUser: async (user_id, { country, zip_code }) => {
+        await db.execute(
+            `UPDATE users
+             SET country = ?, zip_code = ?
+             WHERE user_id = ?`,
+            [country, zip_code, user_id]
+        );
+
+        return { user_id, country, zip_code };
+    },
+
+    // Update preferences payload
+    updatePreferences: async (user_id, preferences) => {
+        await db.execute(
+            `UPDATE users
+             SET preferences = ?
+             WHERE user_id = ?`,
+            [JSON.stringify(preferences), user_id]
+        );
+
+        return { user_id, preferences };
+    },
+
 };
 
 export default User;
