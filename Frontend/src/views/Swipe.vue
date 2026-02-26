@@ -103,6 +103,14 @@ const events = computed(() =>
     }
   })
 )
+const normalizeInterest = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
 const preferredInterests = computed(() => {
   const fromUser = store.state.me?.interests
   const parsedUserInterests =
@@ -113,28 +121,32 @@ const preferredInterests = computed(() => {
         : [])
 
   if (parsedUserInterests.length > 0) {
-    return parsedUserInterests.map((value) => String(value).toLowerCase())
+    return parsedUserInterests.map((value) => normalizeInterest(value)).filter(Boolean)
   }
 
   try {
     const savedPreferences = JSON.parse(localStorage.getItem('preferences') || '{}')
     const savedInterests = Array.isArray(savedPreferences?.interests) ? savedPreferences.interests : []
-    return savedInterests.map((value) => String(value).toLowerCase())
+    return savedInterests.map((value) => normalizeInterest(value)).filter(Boolean)
   } catch {
     return []
   }
 })
 
-const preferredEvents = computed(() => {
+const orderedEvents = computed(() => {
   const interests = preferredInterests.value
   if (interests.length === 0) return events.value
 
-  const filtered = events.value.filter((event) =>
-    interests.includes(String(event.category || '').toLowerCase())
-  )
+  const interestSet = new Set(interests)
+  const preferred = []
+  const others = []
 
-  // Fallback: if categories don't match (data naming mismatch), show all events.
-  return filtered.length > 0 ? filtered : events.value
+  for (const event of events.value) {
+    if (interestSet.has(normalizeInterest(event.category))) preferred.push(event)
+    else others.push(event)
+  }
+
+  return [...preferred, ...others]
 })
 const favourites = computed(() => store.state.favourites || [])
 const favouriteIds = computed(() => favourites.value.map((f) => String(f.id ?? f.event_id)))
@@ -146,7 +158,7 @@ const eventStore = {
     return loading.value
   },
   get events() {
-    return preferredEvents.value
+    return orderedEvents.value
   },
   async fetchEvents() {
     loading.value = true

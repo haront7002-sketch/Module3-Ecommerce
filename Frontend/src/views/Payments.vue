@@ -61,7 +61,7 @@
             </div>
             <div class="quantity-control">
               <button class="qty-btn" @click="qtyDown" :disabled="qty <= 1 || isCartEmpty">-</button>
-              <span class="qty-number">{{ qty }}</span>
+              <span class="qty-number" :class="{ 'is-empty': isCartEmpty }">{{ isCartEmpty ? 0 : qty }}</span>
               <button class="qty-btn" @click="qtyUp" :disabled="isCartEmpty">+</button>
             </div>
           </div>
@@ -801,6 +801,10 @@ h1 {
   text-align: center;
 }
 
+.qty-number.is-empty {
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .totals {
   margin-top: 10px;
 }
@@ -1143,4 +1147,3 @@ h1 {
   }
 }
 </style>
-

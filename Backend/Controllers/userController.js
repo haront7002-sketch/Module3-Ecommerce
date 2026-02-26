@@ -105,6 +105,7 @@ const login = async (req, res) => {
 // GET USER PROFILE 
 const getUserProfile = async (req, res) => {
     try {
+        const { secret } = getJwtConfig();
         const authHeader = req.headers.authorization || '';
         const token = authHeader.startsWith('Bearer ')
             ? authHeader.slice(7)
@@ -114,7 +115,7 @@ const getUserProfile = async (req, res) => {
             return res.status(401).json({ message: 'Missing token' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, secret);
         const user = await User.findById(decoded.user_id);
 
         if (!user) {

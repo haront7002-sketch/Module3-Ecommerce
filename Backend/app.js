@@ -7,6 +7,7 @@ import authRoutes from './Routes/authRoutes.js';
 import { orderRoutes } from './Routes/orderRoutes.js';
 import { ticketRoutes } from './Routes/ticketRoutes.js';
 import { eventRoutes } from './Routes/eventRoutes.js';
+import { categoryRoutes } from './Routes/categoryRoutes.js';
 import { preferenceRoutes } from './Routes/preferenceRoutes.js';
 import userRoutes from './Routes/userRoutes.js';
 
@@ -28,6 +29,8 @@ app.use('/', orderRoutes);
 app.use('/', ticketRoutes);
 app.use('/', categoryRoutes);
 app.use('/', eventRoutes);
+app.use('/', preferenceRoutes);
+app.use('/', userRoutes);
 
 
 // Test route

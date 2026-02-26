@@ -7,7 +7,7 @@
         <div class="profile-info">
           <div v-if="!isEditing" class="display-mode">
             <h1>{{ displayName }}</h1>
-            <p class="username">@{{ user.username || user.email?.split('@')[0] || 'username' }}</p>
+            <p class="username">{{ user.email }}</p>
           </div>
           
           <div v-else class="edit-mode">
@@ -151,8 +151,10 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 
 const router = useRouter()
+const store = useStore()
 const isEditing = ref(false)
 const activeTab = ref('about')
 const distanceUnit = ref('km')
@@ -265,7 +267,7 @@ const startEditing = () => {
   isEditing.value = true
 }
 
-const saveProfile = () => {
+const saveProfile = async () => {
   // Determine final distance value
   const finalDistance = userDistance.value === 'custom' ? customDistanceValue.value : userDistance.value
   
@@ -294,7 +296,20 @@ const saveProfile = () => {
     maxDistance: finalDistance
   }
   localStorage.setItem('preferences', JSON.stringify(updatedPrefs))
+
+  const userId = Number(updatedUser.user_id ?? updatedUser.id)
+  if (Number.isInteger(userId) && userId > 0) {
+    try {
+      await store.dispatch('savePreferences', {
+        user_id: userId,
+        interests: Array.isArray(userInterests.value) ? userInterests.value : []
+      })
+    } catch (error) {
+      console.error('Failed to save profile preferences to backend:', error)
+    }
+  }
   
+  store.commit('setMe', updatedUser)
   user.value = updatedUser
   userDistance.value = finalDistance
   

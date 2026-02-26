@@ -305,6 +305,8 @@ const normalizedEvents = computed(() => {
   return fallbackEvents.value
 })
 
+const normalizeCategory = (value) => String(value || '').trim().toLowerCase()
+
 const filteredEvents = computed(() => {
   let filtered = normalizedEvents.value
 
@@ -326,7 +328,8 @@ const filteredEvents = computed(() => {
   }
 
   if (selectedCategories.value.length > 0) {
-    filtered = filtered.filter((event) => selectedCategories.value.includes(event.category))
+    const selected = new Set(selectedCategories.value.map((category) => normalizeCategory(category)))
+    filtered = filtered.filter((event) => selected.has(normalizeCategory(event.category)))
   }
 
   return filtered.sort((a, b) => {
@@ -628,6 +631,8 @@ const loadMoreEvents = async () => {
 onMounted(() => {
   // Show all events by default; users can click a day to filter.
   selectedDate.value = ''
+  selectedCategories.value = []
+  searchQuery.value = ''
   store.dispatch('getCategories')
   loadEvents()
   loadFavourites()
@@ -1428,4 +1433,3 @@ h1 {
   }
 }
 </style>
-
