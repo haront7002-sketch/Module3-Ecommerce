@@ -72,7 +72,7 @@
           
           <div class="card-footer">
             <button class="btn-book" :disabled="isFreeEvent(event)" @click.stop="bookEvent(event)">
-              <i class="uil uil-shopping-cart"></i> Book Tickets
+              <i class="uil uil-shopping-cart"></i> {{ isFreeEvent(event) ? 'Free' : 'Book Now' }}
             </button>
           </div>
         </div>
@@ -93,6 +93,8 @@
           </div>
 
           <div class="modal-body">
+            <p class="modal-description">{{ selectedEvent.description }}</p>
+
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
@@ -112,14 +114,12 @@
               </div>
             </div>
 
-            <p class="modal-description">{{ selectedEvent.description }}</p>
-
             <div class="modal-actions">
               <button class="modal-btn remove" @click="removeFromFavourites(selectedEvent.id)">
                 <i class="uil uil-heart-broken"></i> Remove
               </button>
               <button class="modal-btn book" :disabled="isFreeEvent(selectedEvent)" @click="bookEvent(selectedEvent)">
-                <i class="uil uil-shopping-cart"></i> Book Tickets
+                <i class="uil uil-shopping-cart"></i> {{ isFreeEvent(selectedEvent) ? 'Free' : 'Book Now' }}
               </button>
             </div>
           </div>

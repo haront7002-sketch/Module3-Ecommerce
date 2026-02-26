@@ -3,9 +3,6 @@
     <!-- Header -->
     <div class="about-header">
       <div class="brand-left">
-        <div class="logo">
-          <span>SOS</span>
-        </div>
         <div class="title-group">
           <h1>About & Contact</h1>
           <p class="subtitle">Get to know South of Somewhere</p>
@@ -18,48 +15,47 @@
       <section class="about-section glass-card">
         <h2><i class="uil uil-info-circle"></i> About Us</h2>
         <p class="about-text">
-        I was on Tinder, half-serious, half-delusional, telling myself I was just “seeing what’s out there.” Translation? I was low-key looking for a rich man with a sharp suit and a sharper bank account.
-        One night, after an exhausting scroll session, I switched over to Instagram to cleanse my eyes. That’s when I saw it — an Insta Reel. The woman in the video said confidently, “You won’t find wealthy men on dating apps. You find them in wealthy places. High-end events. Exclusive spaces.”
-        I paused.
-        High-end events? In Cape Town? I didn’t believe it. If there were glamorous galas, private launches, rooftop networking nights and fancy wine tastings happening around me, nobody sent me the invite.
-        Still, the idea stuck.
-        So I started searching. Instagram pages. Facebook events. Google. Everything was scattered. There were art exhibitions, tech meetups, food festivals, fashion pop-ups, business conferences — not just luxury events, but events of every kind. They were happening all the time… just hidden in different corners of the internet.
-        And that’s when something clicked.
-        Maybe the problem wasn’t that Cape Town lacked rich spaces. Maybe the problem was that there wasn’t one place to find them.
-        So instead of chasing a rich man, I built a website.
-        A platform that gathers events across the city — high-end galas, creative markets, music shows, networking nights, cultural festivals, everything. Not just for people looking for wealthy partners, but for anyone who wants to step outside their routine and experience what’s happening around them.
-        Ironically, I stopped looking for a rich man and started building something richer.
-        Because sometimes, the real glow-up isn’t who you find — it’s what you create.
+          South of Somewhere was born from a simple observation: Cape Town's most exciting events were happening all around us, but they were scattered across different platforms with no single place to find them.
+        </p>
+        <p class="about-text">
+          What started as a personal quest to discover exclusive spaces and experiences evolved into something bigger — a platform that brings together the city's best events, from intimate networking nights to glamorous galas. Whether you're looking to expand your social circle, find professional opportunities, or simply experience something new, SOS is your gateway to what's happening in Cape Town.
+        </p>
+        <p class="about-text highlight">
+          Because sometimes, the real glow-up isn't who you find — it's what you create.
         </p>
       </section>
 
-      <!-- Team Section -->
+      <!-- Team Section with Working Animated Avatars -->
       <section class="team-section glass-card">
         <h2><i class="uil uil-users-alt"></i> Our Team</h2>
         <div class="team-grid">
           <div class="team-member">
-            <div class="member-avatar">
-              <img src="https://placehold.co/120x120?text=Team" alt="Team member">
+            <div class="member-avatar emoji-avatar princess">
+              👸🏽
             </div>
             <h3>Taaraa Haron</h3>
+            <div class="sparkles">✨</div>
           </div>
           <div class="team-member">
-            <div class="member-avatar">
-              <img src="https://placehold.co/120x120?text=Team" alt="Team member">
+            <div class="member-avatar emoji-avatar princess">
+              👸🏽
             </div>
             <h3>Nina Lewis</h3>
+            <div class="sparkles">✨</div>
           </div>
           <div class="team-member">
-            <div class="member-avatar">
-              <img src="https://placehold.co/120x120?text=Team" alt="Team member">
+            <div class="member-avatar emoji-avatar prince">
+              🤴🏽
             </div>
             <h3>Antonio Williams</h3>
+            <div class="sparkles">👑</div>
           </div>
           <div class="team-member">
-            <div class="member-avatar">
-              <img src="https://placehold.co/120x120?text=Team" alt="Team member">
+            <div class="member-avatar emoji-avatar princess">
+              👸🏽
             </div>
             <h3>Sisonke Jada</h3>
+            <div class="sparkles">✨</div>
           </div>
         </div>
       </section>
@@ -70,6 +66,12 @@
         <div class="contact-grid">
           <div class="contact-info">
             <div class="info-item">
+              <i class="uil uil-map-marker"></i>
+              <div>
+                <h4>Visit Us</h4>
+                <p>63 Shortmarket Street</p>
+                <p>Cape Town, 8001</p>
+              </div>
             </div>
             <div class="info-item">
               <i class="uil uil-phone"></i>
@@ -242,27 +244,6 @@ const handleSubmit = async () => {
   align-items: center;
 }
 
-.logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 20px;
-  background: white;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-  flex-shrink: 0;
-}
-
-.logo span {
-  background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .title-group {
   display: flex;
   flex-direction: column;
@@ -318,62 +299,34 @@ section h2 i {
   color: white;
   font-size: 16px;
   line-height: 1.6;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   opacity: 0.95;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+.about-text.highlight {
+  font-style: italic;
+  font-weight: 500;
+  color: #fff5e6;
   margin-top: 20px;
-}
-
-.stat-card {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 20px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.stat-card i {
-  font-size: 32px;
-  color: #EEAECA;
-  margin-bottom: 10px;
-}
-
-.stat-number {
-  display: block;
-  font-size: 28px;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 5px;
-}
-
-.stat-label {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.2);
 }
 
 /* Team Section */
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 25px;
 }
 
 .team-member {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 25px;
+  padding: 25px 20px;
   text-align: center;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .team-member:hover {
@@ -389,12 +342,37 @@ section h2 i {
   overflow: hidden;
   border: 3px solid white;
   box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
 }
 
-.member-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* Emoji Avatar Styles */
+.emoji-avatar {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 70px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Background colors for each team member */
+.team-member:nth-child(1) .emoji-avatar {
+  background: linear-gradient(135deg, #c01a62, #fe6bab);
+}
+
+.team-member:nth-child(2) .emoji-avatar {
+  background: linear-gradient(135deg, #9fef7d, #7acf5a);
+}
+
+.team-member:nth-child(3) .emoji-avatar {
+  background: linear-gradient(135deg, #fe6bab, #c01a62);
+}
+
+.team-member:nth-child(4) .emoji-avatar {
+  background: linear-gradient(135deg, #c01a62, #9fef7d);
 }
 
 .team-member h3 {
@@ -410,36 +388,120 @@ section h2 i {
   font-size: 14px;
 }
 
-.member-bio {
-  color: rgba(255,255,255,0.9);
-  font-size: 13px;
-  margin-bottom: 15px;
-  line-height: 1.5;
+/* Animation Styles */
+@keyframes princessGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.3),
+                0 10px 20px rgba(0,0,0,0.2),
+                0 0 0 3px rgba(255,255,255,0.5);
+  }
+  50% {
+    box-shadow: 0 0 30px 10px rgba(255, 215, 0, 0.6),
+                0 15px 25px rgba(0,0,0,0.3),
+                0 0 0 5px rgba(255,255,255,0.8);
+  }
 }
 
-.member-social {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
+@keyframes princeGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(100, 149, 237, 0.3),
+                0 10px 20px rgba(0,0,0,0.2),
+                0 0 0 3px rgba(255,255,255,0.5);
+  }
+  50% {
+    box-shadow: 0 0 30px 10px rgba(100, 149, 237, 0.6),
+                0 15px 25px rgba(0,0,0,0.3),
+                0 0 0 5px rgba(255,255,255,0.8);
+  }
 }
 
-.social-link {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  transition: all 0.3s ease;
-  text-decoration: none;
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
-.social-link:hover {
-  background: #EEAECA;
-  transform: scale(1.1);
-  color: #2d3436;
+@keyframes spinSparkle {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes bounceSparkle {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Apply animations */
+.princess {
+  animation: princessGlow 3s ease-in-out infinite, float 4s ease-in-out infinite;
+}
+
+.prince {
+  animation: princeGlow 3s ease-in-out infinite, float 4s ease-in-out infinite;
+}
+
+.sparkles {
+  position: absolute;
+  font-size: 20px;
+  animation: spinSparkle 3s linear infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Position sparkles differently for each team member */
+.team-member:nth-child(1) .sparkles {
+  top: 10%;
+  right: 10%;
+  animation-delay: 0s;
+}
+
+.team-member:nth-child(2) .sparkles {
+  bottom: 10%;
+  left: 10%;
+  animation-delay: 0.5s;
+  animation: bounceSparkle 2.5s ease-in-out infinite;
+}
+
+.team-member:nth-child(3) .sparkles {
+  top: 10%;
+  left: 10%;
+  animation-delay: 1s;
+  font-size: 25px;
+}
+
+.team-member:nth-child(4) .sparkles {
+  bottom: 10%;
+  right: 10%;
+  animation-delay: 1.5s;
+  animation: bounceSparkle 3s ease-in-out infinite;
+}
+
+/* Add more sparkles on hover */
+.team-member:hover .sparkles {
+  animation-duration: 1.5s;
+}
+
+.team-member:hover .emoji-avatar {
+  transform: scale(1.05);
 }
 
 /* Contact Section */
@@ -684,10 +746,6 @@ select.form-input option {
     padding: 20px;
   }
   
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  
   .team-grid {
     grid-template-columns: 1fr;
   }
@@ -700,8 +758,8 @@ select.form-input option {
     font-size: 20px;
   }
   
-  .stat-number {
-    font-size: 22px;
+  .emoji-avatar {
+    font-size: 60px;
   }
 }
 </style>

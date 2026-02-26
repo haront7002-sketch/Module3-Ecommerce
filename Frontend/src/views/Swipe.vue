@@ -8,7 +8,7 @@
         </div>
       </div>
       
-      <!-- Only heart count remains -->
+      <!-- heart count -->
       <div class="stats-right">
         <span class="stat-item">
           <i class="uil uil-heart" style="color: #ff6b6b;"></i> {{ favouritesStore.favouritesCount }}
