@@ -16,6 +16,7 @@ const getJwtConfig = () => {
     return { secret, expiresIn };
 };
 
+// REGISTER
 const register = async (req, res) => {
     try {
         const { secret, expiresIn } = getJwtConfig();
@@ -36,7 +37,7 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-
+ 
         const user = await User.create({
             user_name,
             user_surname,
@@ -63,10 +64,11 @@ const register = async (req, res) => {
             return res.status(400).json({ message: "Email already exists" });
         }
         console.error(error);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: error.message});
     }
 };
 
+//  LOGIN
 const login = async (req, res) => {
     try {
         const { secret, expiresIn } = getJwtConfig();
@@ -100,9 +102,9 @@ const login = async (req, res) => {
     }
 };
 
-const getMe = async (req, res) => {
+// GET USER PROFILE 
+const getUserProfile = async (req, res) => {
     try {
-        const { secret } = getJwtConfig();
         const authHeader = req.headers.authorization || '';
         const token = authHeader.startsWith('Bearer ')
             ? authHeader.slice(7)
@@ -112,11 +114,11 @@ const getMe = async (req, res) => {
             return res.status(401).json({ message: 'Missing token' });
         }
 
-        const decoded = jwt.verify(token, secret);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.user_id);
 
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: "User not found" });
         }
 
         res.json(user);
@@ -125,8 +127,36 @@ const getMe = async (req, res) => {
             return res.status(500).json({ message: "Server auth configuration missing (JWT_SECRET)" });
         }
         console.error(error);
-        res.status(401).json({ message: 'Invalid or expired token' });
+        res.status(500).json({ message: "Server error" });
     }
 };
 
-export { register, login, getMe };
+//  UPDATE USER COUNTRY / ZIP 
+const updateUser = async (req, res) => {
+    try {
+        const { country, zip_code } = req.body;
+
+        const updatedUser = await User.updateUser(req.user.user_id, { country, zip_code });
+
+        res.json({ message: "User updated", updatedUser });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// UPDATE USER PREFERENCES
+const updatePreferences = async (req, res) => {
+    try {
+        const { preferences } = req.body;
+
+        const updatedPrefs = await User.updatePreferences(req.user.user_id, preferences);
+
+        res.json({ message: "Preferences updated", updatedPrefs });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+export { register, login, getUserProfile, updateUser, updatePreferences };
