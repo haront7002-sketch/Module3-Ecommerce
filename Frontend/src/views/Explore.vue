@@ -6,7 +6,7 @@
         <div class="logo">SOS</div>
         <div>
           <h1>Explore Events</h1>
-          <p class="subtitle">Discover what's happening in {{ userLocation || 'Cape Town' }}</p>
+          <p class="subtitle">Discover what's happening in Cape Town</p>
         </div>
       </div>
 
@@ -47,7 +47,7 @@
               :class="{ active: selectedCategories.includes(category.name) }"
               @click="toggleCategory(category.name)"
             >
-              <span class="chip-emoji">{{ category.emoji }}</span>
+              <span v-if="category.emoji" class="chip-emoji">{{ category.emoji }}</span>
               <span>{{ category.name }}</span>
             </button>
           </div>
@@ -135,7 +135,7 @@
               <p class="event-description">{{ event.description }}</p>
               <div class="event-meta">
                 <span class="meta-item">
-                  <i class="uil uil-location-point"></i> {{ event.location?.area || event.area }}
+                  <i class="uil uil-location-point"></i> {{ getEventArea(event) }}
                 </span>
                 <span class="meta-item">
                   <i class="uil uil-tag"></i> {{ event.category }}
@@ -149,7 +149,7 @@
                   <i class="uil" :class="isFavourite(event.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 </button>
                 <button class="action-btn book" :disabled="isFreeEvent(event)" @click.stop="bookEvent(event)">
-                  Book Now
+                  {{ isFreeEvent(event) ? 'Free' : 'Book Now' }}
                 </button>
               </div>
             </div>
@@ -180,6 +180,8 @@
           </div>
 
           <div class="modal-body">
+            <p class="modal-description">{{ selectedEvent.description }}</p>
+
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
@@ -187,7 +189,7 @@
               </div>
               <div class="info-row">
                 <i class="uil uil-location-point"></i>
-                <span>{{ selectedEvent.location?.address }}, {{ selectedEvent.location?.area }}</span>
+                <span>{{ formatEventLocation(selectedEvent) }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-tag"></i>
@@ -203,15 +205,13 @@
               </div>
             </div>
 
-            <p class="modal-description">{{ selectedEvent.description }}</p>
-
             <div class="modal-actions">
               <button class="modal-btn like" @click="toggleFavourite(selectedEvent)">
                 <i class="uil" :class="isFavourite(selectedEvent.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 {{ isFavourite(selectedEvent.id) ? 'Remove from Favourites' : 'Add to Favourites' }}
               </button>
               <button class="modal-btn book" :disabled="isFreeEvent(selectedEvent)" @click="bookEvent(selectedEvent)">
-                Book Tickets
+                {{ isFreeEvent(selectedEvent) ? 'Free' : 'Book Now' }}
               </button>
             </div>
           </div>
@@ -293,24 +293,35 @@ const defaultExploreEvents = [
   }
 ]
 
-// Interest categories from preferences
-const interestCategories = [
-  { id: 1, name: 'Social Vibes', emoji: '🎉' },
-  { id: 2, name: 'Intellectual & Skills', emoji: '🧠' },
-  { id: 3, name: 'Arts & Culture', emoji: '🎨' },
-  { id: 4, name: 'Wellness & Body', emoji: '🧘' },
-  { id: 5, name: 'Creative Making', emoji: '✂️' },
-  { id: 6, name: 'Community & Cause', emoji: '🤝' },
-  { id: 7, name: 'Professional Networking', emoji: '💼' },
-  { id: 8, name: 'Life Stages & Niches', emoji: '🌱' },
-  { id: 9, name: 'Seasonal Annual', emoji: '🎪' },
-  { id: 10, name: 'Weird & Hyperlocal', emoji: '🌀' },
-  { id: 11, name: 'Food & Drink', emoji: '🍽️' },
-  { id: 12, name: 'Music & Nightlife', emoji: '🎵' },
-  { id: 13, name: 'Sports & Adventure', emoji: '⚽' },
-  { id: 14, name: 'Family & Kids', emoji: '👨‍👩‍👧' },
-  { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
+// Fallback chips if backend categories are unavailable.
+const fallbackInterestCategories = [
+  { id: 1, name: 'Social Vibes', emoji: '' },
+  { id: 2, name: 'Intellectual & Skills', emoji: '' },
+  { id: 3, name: 'Arts & Culture', emoji: '' },
+  { id: 4, name: 'Wellness & Body', emoji: '' },
+  { id: 5, name: 'Creative Making', emoji: '' },
+  { id: 6, name: 'Community & Cause', emoji: '' },
+  { id: 7, name: 'Professional Networking', emoji: '' },
+  { id: 8, name: 'Life Stages & Niches', emoji: '' },
+  { id: 9, name: 'Seasonal Annual', emoji: '' },
+  { id: 10, name: 'Weird & Hyperlocal', emoji: '' },
+  { id: 11, name: 'Food & Drink', emoji: '' },
+  { id: 12, name: 'Music & Nightlife', emoji: '' },
+  { id: 13, name: 'Sports & Adventure', emoji: '' },
+  { id: 14, name: 'Family & Kids', emoji: '' },
+  { id: 15, name: 'Spirituality & Mindfulness', emoji: '' }
 ]
+
+const interestCategories = computed(() => {
+  const categories = store.state.categories || []
+  if (!categories.length) return fallbackInterestCategories
+
+  return categories.map((category) => ({
+    id: category.id ?? category.category_id,
+    name: category.name ?? category.category_name ?? 'General',
+    emoji: ''
+  }))
+})
 
 const normalizedEvents = computed(() => {
   const raw = (store.state.events || []).map((event) => {
@@ -393,7 +404,17 @@ const eventsThisMonth = computed(() => {
 
 const currentYear = computed(() => currentDate.value.getFullYear())
 const currentMonthName = computed(() => currentDate.value.toLocaleString('default', { month: 'long' }))
-const userLocation = computed(() => store.state.me?.location || 'Cape Town')
+const userLocation = computed(() => {
+  const user = store.state.me || {}
+  const location = user.location
+  if (typeof location === 'string' && location.trim()) return location
+  if (location && typeof location === 'object') {
+    if (typeof location.area === 'string' && location.area.trim()) return location.area
+    if (typeof location.address === 'string' && location.address.trim()) return location.address
+  }
+  if (typeof user.area === 'string' && user.area.trim()) return user.area
+  return 'Cape Town'
+})
 
 const selectedDateLabel = computed(() => {
   if (!selectedDate.value) return 'All Events'
@@ -506,12 +527,41 @@ const formatEventTime = (event) => {
   return formatTime(candidate)
 }
 
+const getEventArea = (event) => {
+  const location = event?.location
+  if (location && typeof location === 'object') {
+    if (typeof location.area === 'string' && location.area.trim()) return location.area
+    if (typeof location.address === 'string' && location.address.trim()) return location.address
+  }
+  if (typeof event?.area === 'string' && event.area.trim()) return event.area
+  if (typeof location === 'string' && location.trim()) return location
+  return 'Unknown'
+}
+
+const formatEventLocation = (event) => {
+  const location = event?.location
+  if (location && typeof location === 'object') {
+    const parts = [location.address, location.area]
+      .map((part) => (typeof part === 'string' ? part.trim() : ''))
+      .filter(Boolean)
+    if (parts.length > 0) return parts.join(', ')
+  }
+
+  const area = getEventArea(event)
+  return area || 'Unknown'
+}
+
 const isToday = (dateString) => dateString === formatDateForComparison(new Date())
 const hasEventsOnDate = (dateString) => (eventStore.eventsByDate[dateString] || []).length > 0
 const selectDate = (date) => { selectedDate.value = date }
 const previousMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
 const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
-const handleSearch = () => {}
+const handleSearch = () => {
+  // Let text search span all dates instead of being restricted to the currently selected calendar date.
+  if (searchQuery.value.trim()) {
+    selectedDate.value = ''
+  }
+}
 
 const toggleCategory = (category) => {
   const index = selectedCategories.value.indexOf(category)
@@ -620,7 +670,8 @@ const loadMoreEvents = async () => {
 }
 
 onMounted(() => {
-  selectedDate.value = formatDateForComparison(new Date())
+  // Show all events by default; users can click a day to filter.
+  selectedDate.value = ''
   store.dispatch('getCategories')
   loadEvents()
   loadFavourites()
@@ -1421,3 +1472,4 @@ h1 {
   }
 }
 </style>
+
