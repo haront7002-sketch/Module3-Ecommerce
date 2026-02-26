@@ -137,10 +137,10 @@
                   <i class="uil uil-location-point"></i> {{ getEventArea(event) }}
                 </span>
                 <span class="meta-item">
-                  <i class="uil uil-tag"></i> {{ event.category }}
+                  <i class="uil uil-puzzle-piece"></i> {{ event.category }}
                 </span>
                 <span class="meta-item price">
-                  <i class="uil uil-dollar-alt"></i> R {{ event.price }}
+                  <i class="uil uil-tag"></i> R {{ event.price }}
                 </span>
               </div>
               <div class="event-actions">
@@ -148,7 +148,7 @@
                   <i class="uil" :class="isFavourite(event.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 </button>
                 <button class="action-btn book" :disabled="isFreeEvent(event)" @click.stop="bookEvent(event)">
-                  {{ isFreeEvent(event) ? 'Free' : 'Book Now' }}
+                  <i class="uil uil-shopping-cart"></i> {{ isFreeEvent(event) ? 'Free' : 'Book Now' }}
                 </button>
               </div>
             </div>
@@ -191,7 +191,7 @@
                 <span>{{ formatEventLocation(selectedEvent) }}</span>
               </div>
               <div class="info-row">
-                <i class="uil uil-tag"></i>
+                <i class="uil uil-puzzle-piece"></i>
                 <span>{{ selectedEvent.category }}</span>
               </div>
               <div class="info-row">
@@ -210,7 +210,7 @@
                 {{ isFavourite(selectedEvent.id) ? 'Remove from Favourites' : 'Add to Favourites' }}
               </button>
               <button class="modal-btn book" :disabled="isFreeEvent(selectedEvent)" @click="bookEvent(selectedEvent)">
-                {{ isFreeEvent(selectedEvent) ? 'Free' : 'Book Now' }}
+                <i class="uil uil-shopping-cart"></i> {{ isFreeEvent(selectedEvent) ? 'Free' : 'Book Now' }}
               </button>
             </div>
           </div>

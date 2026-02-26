@@ -22,16 +22,16 @@
         <p>Loading your favourites...</p>
       </div>
 
-      <div v-else-if="favourites.length === 0" class="empty-state glass-card">
-        <i class="uil uil-heart-broken"></i>
-        <h2>No favourites yet</h2>
-        <p>When you like events while swiping or exploring, they'll appear here</p>
+      <div v-else-if="favourites.length === 0" class="no-cards active">
+        <i class="uil uil-frown"></i>
+        <h2>No favourites yet!</h2>
+        <p>Like events while swiping or exploring to see them here</p>
         <div class="empty-actions">
-          <router-link to="/" class="btn btn-primary">
-            <i class="uil uil-estate"></i> Start Swiping
+          <router-link to="/explore" class="btn btn-primary">
+            Explore Events
           </router-link>
-          <router-link to="/explore" class="btn btn-secondary">
-            <i class="uil uil-calendar-alt"></i> Explore Events
+          <router-link to="/map" class="btn btn-secondary">
+            View Map
           </router-link>
         </div>
       </div>
@@ -52,22 +52,16 @@
           
           <div class="card-body">
             <h3 class="event-title">{{ event.title }}</h3>
-            <p class="event-description">{{ event.description }}</p>
             
             <div class="event-meta">
               <span class="meta-item">
                 <i class="uil uil-calendar-alt"></i> {{ formatDate(event.date) }}
               </span>
               <span class="meta-item">
-                <i class="uil uil-clock"></i> {{ formatTime(event) }}
-              </span>
-              <span class="meta-item">
-                <i class="uil uil-location-point"></i> {{ event.area }}
-              </span>
-              <span class="meta-item price">
-                <i class="uil uil-tag"></i> R {{ event.price }}
+                <i class="uil uil-puzzle-piece"></i> {{ event.category }}
               </span>
             </div>
+            <p class="view-more-hint">Tap card to view full details</p>
           </div>
           
           <div class="card-footer">
@@ -88,35 +82,39 @@
           </button>
           
           <div class="modal-header">
-            <img class="modal-emoji" :src="selectedEvent.image_url || 'https://placehold.co/120x120?text=Event'" alt="Event image" />
-            <h2>{{ selectedEvent.title }}</h2>
+            <img class="modal-image" :src="selectedEvent.image_url || 'https://placehold.co/280x160?text=Event'" alt="Event image" />
           </div>
 
           <div class="modal-body">
+            <h2 class="modal-title">{{ selectedEvent.title }}</h2>
             <p class="modal-description">{{ selectedEvent.description }}</p>
 
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
-                <span>{{ formatDate(selectedEvent.date) }} at {{ formatTime(selectedEvent) }}</span>
+                <span>{{ formatDate(selectedEvent.startDate || selectedEvent.date) }} at {{ formatEventTime(selectedEvent) }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-location-point"></i>
-                <span>{{ selectedEvent.location }}, {{ selectedEvent.area }}</span>
+                <span>{{ formatEventLocation(selectedEvent) }}</span>
               </div>
               <div class="info-row">
-                <i class="uil uil-tag"></i>
+                <i class="uil uil-puzzle-piece"></i>
                 <span>{{ selectedEvent.category }}</span>
               </div>
               <div class="info-row">
-                <i class="uil uil-dollar-alt"></i>
+                <i class="uil uil-tag"></i>
                 <span>R {{ selectedEvent.price }} per ticket</span>
+              </div>
+              <div class="info-row">
+                <i class="uil uil-users-alt"></i>
+                <span>{{ selectedEvent.availableSpots }} spots left</span>
               </div>
             </div>
 
             <div class="modal-actions">
-              <button class="modal-btn remove" @click="removeFromFavourites(selectedEvent.id)">
-                <i class="uil uil-heart-broken"></i> Remove
+              <button class="modal-btn like" @click="removeFromFavourites(selectedEvent.id)">
+                <i class="uil uil-heart-break"></i> Remove from Favourites
               </button>
               <button class="modal-btn book" :disabled="isFreeEvent(selectedEvent)" @click="bookEvent(selectedEvent)">
                 <i class="uil uil-shopping-cart"></i> {{ isFreeEvent(selectedEvent) ? 'Free' : 'Book Now' }}
@@ -176,11 +174,9 @@ const formatDate = (dateString) => {
 const formatTime = (event) => {
   if (!event) return ''
 
-  const candidate = event.startDate || event.start_date || (event.date && event.time ? `${event.date}T${event.time}` : event.time)
-  if (!candidate) return ''
-
-  if (typeof candidate === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(candidate)) {
-    const [h, m] = candidate.split(':')
+  const rawTime = event.time
+  if (typeof rawTime === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(rawTime)) {
+    const [h, m] = rawTime.split(':')
     const d = new Date()
     d.setHours(Number(h), Number(m), 0, 0)
     return d.toLocaleTimeString(undefined, {
@@ -190,6 +186,33 @@ const formatTime = (event) => {
     })
   }
 
+  const startCandidate = event.startDate || event.start_date
+  if (startCandidate) {
+    const parsed = new Date(startCandidate)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    }
+  }
+
+  if (event.date && event.time) {
+    const datePart = String(event.date).split('T')[0]
+    const combined = `${datePart}T${event.time}`
+    const parsed = new Date(combined)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    }
+  }
+
+  const candidate = rawTime || event.date
+  if (!candidate) return ''
   const parsed = new Date(candidate)
   if (Number.isNaN(parsed.getTime())) return ''
   return parsed.toLocaleTimeString(undefined, {
@@ -197,6 +220,36 @@ const formatTime = (event) => {
     minute: '2-digit',
     hour12: true
   })
+}
+
+const formatEventTime = (event) => {
+  if (!event) return ''
+  const candidate = event.startDate || event.start_date || (event.date && event.time ? `${event.date}T${event.time}` : event.time)
+  return formatTime({ ...event, time: candidate })
+}
+
+const getEventArea = (event) => {
+  const location = event?.location
+  if (location && typeof location === 'object') {
+    if (typeof location.area === 'string' && location.area.trim()) return location.area
+    if (typeof location.address === 'string' && location.address.trim()) return location.address
+  }
+  if (typeof event?.area === 'string' && event.area.trim()) return event.area
+  if (typeof location === 'string' && location.trim()) return location
+  return 'Unknown'
+}
+
+const formatEventLocation = (event) => {
+  const location = event?.location
+  if (location && typeof location === 'object') {
+    const parts = [location.address, location.area]
+      .map((part) => (typeof part === 'string' ? part.trim() : ''))
+      .filter(Boolean)
+    if (parts.length > 0) return parts.join(', ')
+  }
+
+  const area = getEventArea(event)
+  return area || 'Unknown'
 }
 
 // Remove from favourites
@@ -381,46 +434,55 @@ h1 {
   100% { transform: rotate(360deg); }
 }
 
-/* Empty State */
-.empty-state {
+/* Empty State (same style as Swipe "No more events") */
+.no-cards {
   text-align: center;
-  padding: 60px 40px;
-  max-width: 500px;
-  margin: 40px auto;
-}
-
-.empty-state i {
-  font-size: 80px;
-  color: #ff8787;
-  margin-bottom: 20px;
-  animation: heartbeat 1.5s ease infinite;
-}
-
-@keyframes heartbeat {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-.empty-state h2 {
   color: white;
-  margin-bottom: 10px;
-  font-size: 24px;
+  display: block;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  padding: 40px;
+  max-width: 400px;
+  margin: 40px auto;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: fadeIn 0.5s ease;
 }
 
-.empty-state p {
+.no-cards i {
+  font-size: 60px;
+  margin-bottom: 20px;
   color: rgba(255,255,255,0.9);
-  margin-bottom: 30px;
+}
+
+.no-cards h2 {
+  color: white;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.no-cards p {
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 25px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .empty-actions {
   display: flex;
   gap: 15px;
   justify-content: center;
-  flex-wrap: wrap;
 }
 
 .btn {
-  padding: 12px 30px;
+  padding: 12px 24px;
   border: none;
   border-radius: 30px;
   font-size: 14px;
@@ -445,13 +507,13 @@ h1 {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.35);
   transform: translateY(-2px);
 }
 
@@ -523,6 +585,12 @@ h1 {
   color: rgba(255,255,255,0.9);
   line-height: 1.5;
   margin-bottom: 15px;
+}
+
+.view-more-hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .event-meta {
@@ -644,24 +712,22 @@ h1 {
 }
 
 .modal-header {
-  padding: 30px 30px 20px;
-  text-align: center;
-  background: linear-gradient(135deg, rgba(238, 174, 202, 0.3), rgba(174, 233, 148, 0.3));
+  padding: 0;
+  background: transparent;
   border-radius: 20px 20px 0 0;
 }
 
-.modal-emoji {
-  width: 120px;
-  height: 120px;
+.modal-image {
+  width: 100%;
+  height: 220px;
   object-fit: cover;
-  border-radius: 16px;
-  margin: 0 auto 15px;
+  border-radius: 20px 20px 0 0;
   display: block;
 }
 
-.modal-header h2 {
+.modal-title {
   color: white;
-  margin: 0;
+  margin: 0 0 12px;
   font-size: 24px;
 }
 
@@ -717,13 +783,13 @@ h1 {
   gap: 8px;
 }
 
-.modal-btn.remove {
+.modal-btn.like {
   background: rgba(255, 255, 255, 0.2);
   color: #ff8787;
   border: 1px solid rgba(255, 107, 107, 0.3);
 }
 
-.modal-btn.remove:hover {
+.modal-btn.like:hover {
   background: #ff6b6b;
   color: white;
   transform: translateY(-2px);

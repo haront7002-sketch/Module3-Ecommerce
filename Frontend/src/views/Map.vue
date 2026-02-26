@@ -318,7 +318,7 @@ const popupHtml = (ev) => {
           <div style="margin:0 0 8px; font-size:12px; color:#444;">${ev.description || ''}</div>
           <div style="margin:0 0 10px; font-size:12px;"><b style="color:#333;">Price:</b> <span style="color:#4caf50;">R ${ev.price || 0}</span></div>
           <button id="pay-${ev.id}" ${isFree ? 'disabled' : ''} style="${buttonStyle}">
-            ${buttonText}
+            <i class="uil uil-shopping-cart" aria-hidden="true" style="margin-right:6px;"></i>${buttonText}
           </button>
         </div>
       </div>
