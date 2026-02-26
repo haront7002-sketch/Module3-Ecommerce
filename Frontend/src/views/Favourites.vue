@@ -3,7 +3,6 @@
     <!-- Header -->
     <div class="favourites-header">
       <div class="brand">
-        <div class="logo">SOS</div>
         <div>
           <h1>My Favourites</h1>
           <p class="subtitle">Events you've liked and want to remember</p>

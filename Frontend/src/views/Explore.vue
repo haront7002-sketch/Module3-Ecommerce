@@ -3,7 +3,6 @@
     <!-- Top bar with search and filter -->
     <div class="explore-header">
       <div class="brand">
-        <div class="logo">SOS</div>
         <div>
           <h1>Explore Events</h1>
           <p class="subtitle">Discover what's happening in Cape Town</p>
@@ -250,69 +249,26 @@ const categoryNameById = computed(() => {
   }, {})
 })
 
-const defaultExploreEvents = [
-  {
-    id: 'exp-1',
-    title: 'City Rooftop Social',
-    description: 'Meet new people with live DJs and skyline views.',
-    area: 'City Centre',
-    category: 'Social Vibes',
-    price: 140,
-    startDate: '2026-03-20T19:00:00',
-    image_url: ''
-  },
-  {
-    id: 'exp-2',
-    title: 'Cape Food Tasting Walk',
-    description: 'Guided tasting tour across local food spots.',
-    area: 'Woodstock',
-    category: 'Food & Drink',
-    price: 220,
-    startDate: '2026-03-21T13:00:00',
-    image_url: ''
-  },
-  {
-    id: 'exp-3',
-    title: 'Beginner Salsa Night',
-    description: 'Intro dance class followed by social dancing.',
-    area: 'Sea Point',
-    category: 'Wellness & Body',
-    price: 90,
-    startDate: '2026-03-22T18:30:00',
-    image_url: ''
-  },
-  {
-    id: 'exp-4',
-    title: 'Saturday Creative Market',
-    description: 'Artisan stalls, live art, and street food.',
-    area: 'Observatory',
-    category: 'Creative Making',
-    price: 0,
-    startDate: '2026-03-23T10:30:00',
-    image_url: ''
-  }
+// Interest categories from preferences
+const interestCategories = [
+  { id: 1, name: 'Social Vibes', emoji: '🎉' },
+  { id: 2, name: 'Intellectual & Skills', emoji: '🧠' },
+  { id: 3, name: 'Arts & Culture', emoji: '🎨' },
+  { id: 4, name: 'Wellness & Body', emoji: '🧘' },
+  { id: 5, name: 'Creative Making', emoji: '✂️' },
+  { id: 6, name: 'Community & Cause', emoji: '🤝' },
+  { id: 7, name: 'Professional Networking', emoji: '💼' },
+  { id: 8, name: 'Life Stages & Niches', emoji: '🌱' },
+  { id: 9, name: 'Seasonal Annual', emoji: '🎪' },
+  { id: 10, name: 'Weird & Hyperlocal', emoji: '🌀' },
+  { id: 11, name: 'Food & Drink', emoji: '🍽️' },
+  { id: 12, name: 'Music & Nightlife', emoji: '🎵' },
+  { id: 13, name: 'Sports & Adventure', emoji: '⚽' },
+  { id: 14, name: 'Family & Kids', emoji: '👨‍👩‍👧' },
+  { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
 ]
 
-// Fallback chips if backend categories are unavailable.
-const fallbackInterestCategories = [
-  { id: 1, name: 'Social Vibes', emoji: '' },
-  { id: 2, name: 'Intellectual & Skills', emoji: '' },
-  { id: 3, name: 'Arts & Culture', emoji: '' },
-  { id: 4, name: 'Wellness & Body', emoji: '' },
-  { id: 5, name: 'Creative Making', emoji: '' },
-  { id: 6, name: 'Community & Cause', emoji: '' },
-  { id: 7, name: 'Professional Networking', emoji: '' },
-  { id: 8, name: 'Life Stages & Niches', emoji: '' },
-  { id: 9, name: 'Seasonal Annual', emoji: '' },
-  { id: 10, name: 'Weird & Hyperlocal', emoji: '' },
-  { id: 11, name: 'Food & Drink', emoji: '' },
-  { id: 12, name: 'Music & Nightlife', emoji: '' },
-  { id: 13, name: 'Sports & Adventure', emoji: '' },
-  { id: 14, name: 'Family & Kids', emoji: '' },
-  { id: 15, name: 'Spirituality & Mindfulness', emoji: '' }
-]
-
-const interestCategories = computed(() => {
+const getInterestCategories = computed(() => {
   const categories = store.state.categories || []
   if (!categories.length) return fallbackInterestCategories
 

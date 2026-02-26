@@ -4,8 +4,13 @@
 -- ------------------------------------------------------
 -- Server version	8.0.44
 
+<<<<<<< HEAD
+CREATE DATABASE IF NOT EXISTS `s_o_s`;
+USE `s_o_s`;
+=======
 CREATE DATABASE IF NOT  EXISTS s_o_s;
 USE s_o_s;
+>>>>>>> 604c27b9410dde95e4e6817fb4c648a9ce9a5577
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;

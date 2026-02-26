@@ -229,7 +229,7 @@ const cleanup = () => {
   display: flex;
   flex-direction: column;
   padding: 40px 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(60deg, #EEAECA, #4caf50);
   border-radius: 20px;
   color: white;
 }

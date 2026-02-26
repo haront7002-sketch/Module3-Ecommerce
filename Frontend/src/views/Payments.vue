@@ -3,7 +3,6 @@
     <!-- Header -->
     <div class="payments-header">
       <div class="brand">
-        <div class="logo">SOS</div>
         <div>
           <h1>Payment Process</h1>
           <p class="subtitle">Complete your booking securely</p>

@@ -1,19 +1,17 @@
 <template>
   <div class="swipe-container">
     <div class="swipe-header">
-      <div class="brand">
-        <div class="logo">SOS</div>
-        <div>
+      <div class="brand-left">
+        <div class="title-group">
           <h1>Discover Events</h1>
           <p class="subtitle">Swipe right to like, left to pass</p>
         </div>
       </div>
-      <div class="stats">
+      
+      <!-- heart count -->
+      <div class="stats-right">
         <span class="stat-item">
           <i class="uil uil-heart" style="color: #ff6b6b;"></i> {{ favouritesStore.favouritesCount }}
-        </span>
-        <span class="stat-item">
-          <i class="uil uil-eye"></i> {{ remainingCount }} left
         </span>
       </div>
     </div>
@@ -56,10 +54,10 @@
     </div>
 
     <div class="action-buttons" v-if="!noEventsLeft && !eventStore.loading">
-      <button class="action-btn nope" @click="swipeCard('left')">
+      <button class="action-btn nope">
         <i class="uil uil-times"></i>
       </button>
-      <button class="action-btn like" @click="swipeCard('right')">
+      <button class="action-btn like">
         <i class="uil uil-heart"></i>
       </button>
     </div>
@@ -291,7 +289,6 @@ watch(user, () => {
 </script>
 
 <style scoped>
-/* Keep all existing styles from original Swipe.vue */
 .swipe-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
@@ -302,17 +299,17 @@ watch(user, () => {
   position: relative;
 }
 
+/* Updated Header - pushed to edges */
 .swipe-header {
   width: 100%;
-  max-width: 600px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 0 10px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 0;
 }
 
-.brand {
+.brand-left {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -321,14 +318,27 @@ watch(user, () => {
 .logo {
   width: 48px;
   height: 48px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 900;
   font-size: 20px;
-  color: #fff;
-  background: linear-gradient(135deg, #2d3436 0%, #000000 100%);
+  background: white;
   box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+
+.logo span {
+  background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.title-group {
+  display: flex;
+  flex-direction: column;
 }
 
 h1 {
@@ -336,22 +346,19 @@ h1 {
   font-size: 24px;
   color: white;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+  line-height: 1.2;
 }
 
 .subtitle {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-size: 12px;
   color: rgba(255,255,255,0.9);
 }
 
-.stats {
+/* Stats - only heart count remains */
+.stats-right {
   display: flex;
-  gap: 15px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 8px 16px;
-  border-radius: 30px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0;
 }
 
 .stat-item {
@@ -361,6 +368,11 @@ h1 {
   color: white;
   font-size: 14px;
   font-weight: 500;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 30px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .stat-item i {
@@ -393,7 +405,7 @@ h1 {
   width: 100%;
   max-width: 400px;
   height: 550px;
-  margin: 20px auto 30px;
+  margin: 10px auto 30px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -422,6 +434,19 @@ h1 {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  background: white; /* White background */
+}
+
+.action-btn.nope i {
+  color: #ff6b6b; /* Red color for X */
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.action-btn.like i {
+  color: #4caf50; /* Green color for heart */
+  font-size: 36px;
+  font-weight: bold;
 }
 
 .action-btn::before {
@@ -431,7 +456,7 @@ h1 {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
   transition: left 0.5s;
 }
 
@@ -446,16 +471,6 @@ h1 {
 
 .action-btn:active {
   transform: scale(0.95);
-}
-
-.action-btn.nope {
-  background: #ff6b6b;
-  color: white;
-}
-
-.action-btn.like {
-  background: #4caf50;
-  color: white;
 }
 
 .no-cards {
@@ -574,20 +589,39 @@ h1 {
 }
 
 @media (max-width: 600px) {
+  .swipe-container {
+    padding: 15px;
+  }
+  
   .swipe-header {
     flex-direction: column;
-    gap: 15px;
-    text-align: center;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .brand-left {
+    width: 100%;
+  }
+  
+  .stats-right {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 60px; /* Align with text under logo */
   }
   
   .card-container {
     height: 500px;
+    margin-top: 0;
   }
   
   .action-btn {
     width: 60px;
     height: 60px;
-    font-size: 28px;
+  }
+  
+  .action-btn.nope i,
+  .action-btn.like i {
+    font-size: 30px;
   }
   
   .empty-actions {
