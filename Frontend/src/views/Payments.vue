@@ -5,7 +5,7 @@
       <div class="brand">
         <div class="logo">SOS</div>
         <div>
-          <h1>Payment</h1>
+          <h1>Payment Process</h1>
           <p class="subtitle">Complete your booking securely</p>
         </div>
       </div>
@@ -32,7 +32,25 @@
             <span class="badge">Secure Checkout</span>
           </div>
 
-          <div class="order-item">
+          <div v-if="cartItems.length > 0">
+            <div class="order-item" v-for="item in cartItems" :key="item.cartId">
+              <div class="item-details">
+                <span class="item-label">Event</span>
+                <span class="item-value">{{ item.title }}</span>
+                <span class="item-ref">Ref: {{ item.eventId }}</span>
+              </div>
+              <div class="item-date">
+                <span class="item-label">Date</span>
+                <span class="item-value">{{ item.date }}</span>
+              </div>
+              <div class="quantity-control">
+                <button class="qty-btn" @click="decrementItem(item)" :disabled="item.quantity <= 1 || updatingQty">-</button>
+                <span class="qty-number">{{ item.quantity }}</span>
+                <button class="qty-btn" @click="incrementItem(item)" :disabled="updatingQty">+</button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="order-item">
             <div class="item-details">
               <span class="item-label">Event</span>
               <span class="item-value">{{ order.title }}</span>
@@ -42,19 +60,10 @@
               <span class="item-label">Date</span>
               <span class="item-value">{{ order.date }}</span>
             </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="ticket-row">
-            <div>
-              <span class="item-label">Ticket Price</span>
-              <span class="item-value">R {{ order.pricePerTicket }} each</span>
-            </div>
             <div class="quantity-control">
-              <button class="qty-btn" @click="qtyDown" :disabled="qty <= 1">-</button>
+              <button class="qty-btn" @click="qtyDown" :disabled="qty <= 1 || isCartEmpty">-</button>
               <span class="qty-number">{{ qty }}</span>
-              <button class="qty-btn" @click="qtyUp">+</button>
+              <button class="qty-btn" @click="qtyUp" :disabled="isCartEmpty">+</button>
             </div>
           </div>
 
@@ -75,10 +84,14 @@
             </div>
           </div>
 
-          <p class="note">
-            <i class="uil uil-info-circle"></i>
-            Demo mode: this simulates payment success
-          </p>
+          <button
+            class="clear-cart-btn"
+            :disabled="clearingCart"
+            @click="clearCart"
+          >
+            <span v-if="clearingCart">Clearing...</span>
+            <span v-else>Clear Cart</span>
+          </button>
         </section>
 
         <!-- Customer & Payment -->
@@ -202,21 +215,35 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import { useStore } from "vuex";
 import QRCode from "qrcode";
 
 const route = useRoute();
+const store = useStore();
+const EMPTY_ORDER = {
+  eventId: "",
+  title: "No item in cart",
+  date: "",
+  pricePerTicket: 0
+};
 
-// Order data from query params
-const order = ref({
-  eventId: route.query.eventId || "demo-001",
-  title: route.query.title || "Cape Town Sunset Cruise",
-  date: route.query.date || "Sat, 2 May 2026 • 18:00",
-  pricePerTicket: Number(route.query.price || 250),
-});
+const hasRouteEvent = Number.isInteger(Number(route.query.eventId)) && Number(route.query.eventId) > 0;
 
+// Order data from query params (empty unless user clicked Book Now)
+const order = ref(
+  hasRouteEvent
+    ? {
+        eventId: route.query.eventId,
+        title: route.query.title || "Selected Event",
+        date: route.query.date || "",
+        pricePerTicket: Number(route.query.price || 0),
+      }
+    : { ...EMPTY_ORDER }
+);
 const qty = ref(1);
+const cartItems = ref([]);
 const method = ref("card");
 
 const customer = reactive({
@@ -228,6 +255,8 @@ const customer = reactive({
 const accepted = ref(false);
 const submitted = ref(false);
 const processing = ref(false);
+const clearingCart = ref(false);
+const updatingQty = ref(false);
 
 const status = ref("");
 const reference = ref("");
@@ -239,7 +268,14 @@ const banner = reactive({
   variant: "info",
 });
 
-const subtotal = computed(() => order.value.pricePerTicket * qty.value);
+const subtotal = computed(() => {
+  if (cartItems.value.length === 0) return order.value.pricePerTicket * qty.value;
+  return cartItems.value.reduce(
+    (sum, item) => sum + Number(item.pricePerTicket) * Number(item.quantity),
+    0
+  );
+});
+const isCartEmpty = computed(() => cartItems.value.length === 0 && !order.value.eventId);
 const fee = computed(() => Math.round(subtotal.value * 0.05));
 const total = computed(() => subtotal.value + fee.value);
 
@@ -260,17 +296,156 @@ function showBanner(msg, variant = "info") {
   banner.variant = variant;
 }
 
+function clearOrderSummary() {
+  order.value = { ...EMPTY_ORDER };
+  qty.value = 1;
+  cartItems.value = [];
+  status.value = "";
+  reference.value = "";
+  ticket.value = null;
+  qrDataUrl.value = "";
+}
+
+function mapCartItems(raw = []) {
+  return (raw || []).map((item) => {
+    const datePart = item.date ? new Date(item.date).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    }) : "";
+    const timePart = item.time
+      ? new Date(`1970-01-01T${item.time}`).toLocaleTimeString(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true
+        })
+      : "";
+
+    return {
+      cartId: item.cart_id ?? item.cartId,
+      eventId: item.event_id ?? item.eventId,
+      title: item.event_title ?? item.title ?? "Untitled Event",
+      date: [datePart, timePart].filter(Boolean).join(" • "),
+      pricePerTicket: Number(item.price ?? 0),
+      quantity: Number(item.quantity ?? 1)
+    };
+  });
+}
+
+async function loadCart() {
+  const userId = getCurrentUserId();
+  if (!userId) {
+    cartItems.value = [];
+    return;
+  }
+  await store.dispatch("getCart", { userId });
+  cartItems.value = mapCartItems(store.state.cart || []);
+}
+
+async function addRouteEventToCartIfPresent() {
+  const userId = getCurrentUserId();
+  const eventId = Number(route.query.eventId);
+  if (!userId || !Number.isInteger(eventId) || eventId <= 0) return;
+
+  await store.dispatch("postCart", {
+    user_id: userId,
+    event_id: eventId,
+    quantity: 1
+  });
+}
+
+async function incrementItem(item) {
+  updatingQty.value = true;
+  try {
+    await store.dispatch("patchCartQuantity", {
+      cartId: item.cartId,
+      body: { quantity: Number(item.quantity) + 1 }
+    });
+    await loadCart();
+  } catch (err) {
+    console.error(err);
+    showBanner("Failed to update quantity.", "error");
+  } finally {
+    updatingQty.value = false;
+  }
+}
+
+async function decrementItem(item) {
+  if (Number(item.quantity) <= 1) return;
+  updatingQty.value = true;
+  try {
+    await store.dispatch("patchCartQuantity", {
+      cartId: item.cartId,
+      body: { quantity: Number(item.quantity) - 1 }
+    });
+    await loadCart();
+  } catch (err) {
+    console.error(err);
+    showBanner("Failed to update quantity.", "error");
+  } finally {
+    updatingQty.value = false;
+  }
+}
+
+function getCurrentUserId() {
+  const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+  return store.state.me?.user_id ?? store.state.me?.id ?? storedUser?.user_id ?? storedUser?.id;
+}
+
+async function clearCartForUser({ showErrors = true } = {}) {
+  const userId = getCurrentUserId();
+
+  if (!userId) {
+    if (showErrors) showBanner("No user found to clear cart for.", "warning");
+    return false;
+  }
+
+  try {
+    await store.dispatch("deleteUserCart", { userId });
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (showErrors) showBanner("Failed to clear cart.", "error");
+    return false;
+  }
+}
+
+async function clearCart() {
+  clearingCart.value = true;
+  try {
+    const cleared = await clearCartForUser({ showErrors: true });
+    if (cleared) clearOrderSummary();
+  } finally {
+    clearingCart.value = false;
+  }
+}
+
 function makeRef() {
   const code = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `PAY-${code}`;
 }
 
 async function createTicketWithQr() {
+  const itemsForTicket = cartItems.value.length > 0
+    ? cartItems.value
+    : [{
+        eventId: order.value.eventId,
+        title: order.value.title,
+        date: order.value.date,
+        quantity: qty.value
+      }];
+  const totalQty = itemsForTicket.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const summaryTitle = itemsForTicket.length === 1 ? itemsForTicket[0].title : `${itemsForTicket.length} events`;
+
   const qrPayload = JSON.stringify({
     reference: reference.value,
-    eventId: order.value.eventId,
-    title: order.value.title,
-    quantity: qty.value,
+    items: itemsForTicket.map((item) => ({
+      eventId: item.eventId,
+      title: item.title,
+      quantity: item.quantity
+    })),
+    title: summaryTitle,
+    quantity: totalQty,
     total: total.value
   });
 
@@ -281,10 +456,10 @@ async function createTicketWithQr() {
 
   ticket.value = {
     reference: reference.value,
-    eventId: order.value.eventId,
-    title: order.value.title,
-    date: order.value.date,
-    quantity: qty.value,
+    eventId: itemsForTicket.map((item) => item.eventId).join(", "),
+    title: summaryTitle,
+    date: itemsForTicket.map((item) => item.date).filter(Boolean).join(" | "),
+    quantity: totalQty,
     total: total.value
   };
 }
@@ -353,6 +528,10 @@ async function pay() {
     showBanner("Please complete all required fields", "warning");
     return;
   }
+  if (cartItems.value.length === 0 && !order.value.eventId) {
+    showBanner("Your cart is empty.", "warning");
+    return;
+  }
 
   processing.value = true;
 
@@ -360,6 +539,7 @@ async function pay() {
     await new Promise((r) => setTimeout(r, 1500));
     reference.value = makeRef();
     await createTicketWithQr();
+    await clearCartForUser({ showErrors: false });
     status.value = "success";
     showBanner("Payment completed successfully!", "success");
   } catch (err) {
@@ -370,6 +550,19 @@ async function pay() {
     processing.value = false;
   }
 }
+
+onMounted(async () => {
+  if (!hasRouteEvent) {
+    clearOrderSummary();
+    return;
+  }
+  try {
+    await addRouteEventToCartIfPresent();
+  } catch (err) {
+    console.error(err);
+  }
+  await loadCart();
+});
 </script>
 
 <style scoped>
@@ -629,21 +822,27 @@ h1 {
   padding-top: 15px;
 }
 
-.note {
+.clear-cart-btn {
   margin-top: 20px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.8);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.note i {
-  font-size: 16px;
-  color: #AEE994;
+.clear-cart-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.clear-cart-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Payment Form */
@@ -945,3 +1144,4 @@ h1 {
   }
 }
 </style>
+

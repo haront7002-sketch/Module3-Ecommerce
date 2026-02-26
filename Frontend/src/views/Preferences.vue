@@ -216,7 +216,7 @@ const calculateAge = (birthDate) => {
   return age
 }
 
-const savePreferences = () => {
+const savePreferences = async () => {
   // Calculate age
   const age = calculateAge(preferences.birthDate)
   
@@ -232,6 +232,18 @@ const savePreferences = () => {
   
   const currentUser = store.state.me || JSON.parse(localStorage.getItem('user') || 'null') || {}
   const updatedUser = { ...currentUser, ...completePrefs, profileComplete: true }
+
+  const userId = updatedUser.user_id ?? updatedUser.id
+  if (userId && completePrefs.interests.length > 0) {
+    try {
+      await store.dispatch('savePreferences', {
+        user_id: userId,
+        interests: completePrefs.interests
+      })
+    } catch (error) {
+      console.error('Failed to save preferences to backend:', error)
+    }
+  }
 
   store.commit('setMe', updatedUser)
   localStorage.setItem('user', JSON.stringify(updatedUser))

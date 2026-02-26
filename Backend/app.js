@@ -8,6 +8,7 @@ import { orderRoutes } from './Routes/orderRoutes.js';
 import { ticketRoutes } from './Routes/ticketRoutes.js';
 import { categoryRoutes } from './Routes/categoryRoutes.js';
 import { eventRoutes } from './Routes/eventRoutes.js';
+import { preferenceRoutes } from './Routes/preferenceRoutes.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/', orderRoutes);
 app.use('/', ticketRoutes);
 app.use('/', categoryRoutes);
 app.use('/', eventRoutes);
+app.use('/', preferenceRoutes);
 
 
 // Test route

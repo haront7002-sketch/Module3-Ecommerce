@@ -105,6 +105,39 @@ const events = computed(() =>
     }
   })
 )
+const preferredInterests = computed(() => {
+  const fromUser = store.state.me?.interests
+  const parsedUserInterests =
+    Array.isArray(fromUser)
+      ? fromUser
+      : (typeof fromUser === 'string' && fromUser.trim()
+        ? fromUser.split(',').map((value) => value.trim()).filter(Boolean)
+        : [])
+
+  if (parsedUserInterests.length > 0) {
+    return parsedUserInterests.map((value) => String(value).toLowerCase())
+  }
+
+  try {
+    const savedPreferences = JSON.parse(localStorage.getItem('preferences') || '{}')
+    const savedInterests = Array.isArray(savedPreferences?.interests) ? savedPreferences.interests : []
+    return savedInterests.map((value) => String(value).toLowerCase())
+  } catch {
+    return []
+  }
+})
+
+const preferredEvents = computed(() => {
+  const interests = preferredInterests.value
+  if (interests.length === 0) return events.value
+
+  const filtered = events.value.filter((event) =>
+    interests.includes(String(event.category || '').toLowerCase())
+  )
+
+  // Fallback: if categories don't match (data naming mismatch), show all events.
+  return filtered.length > 0 ? filtered : events.value
+})
 const favourites = computed(() => store.state.favourites || [])
 const favouriteIds = computed(() => favourites.value.map((f) => String(f.id ?? f.event_id)))
 const user = computed(() => store.state.me || JSON.parse(localStorage.getItem('user') || 'null'))
@@ -115,7 +148,7 @@ const eventStore = {
     return loading.value
   },
   get events() {
-    return events.value
+    return preferredEvents.value
   },
   async fetchEvents() {
     loading.value = true

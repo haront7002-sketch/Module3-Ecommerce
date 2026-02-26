@@ -219,6 +219,17 @@ export default createStore({
       })
       return response.json()
     },
+    async savePreferences({ state }, payload) {
+      const headers = { 'Content-Type': 'application/json' }
+      if (state.token) headers.Authorization = `Bearer ${state.token}`
+
+      const response = await fetch(`${API_BASE_URL}/preferences`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      })
+      return response.json()
+    },
     async patchCartQuantity({ commit }, payload) {
       const response = await fetch(`${API_BASE_URL}/cart/${payload.cartId}`, {
         method: 'PATCH',
