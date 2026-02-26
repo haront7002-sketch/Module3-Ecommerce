@@ -125,11 +125,11 @@
             @click="viewEventDetails(event)"
           >
             <div class="event-time">
-              <span class="time">{{ formatTime(event.startDate) }}</span>
+              <span class="time">{{ formatEventTime(event) }}</span>
             </div>
             <div class="event-content">
               <div class="event-header">
-                <span class="event-emoji">{{ event.emoji || '🎉' }}</span>
+                <img :src="event.image_url || 'https://placehold.co/120x120?text=Event'" alt="Event image" class="event-image">
                 <h3 class="event-title">{{ event.title }}</h3>
               </div>
               <p class="event-description">{{ event.description }}</p>
@@ -148,7 +148,7 @@
                 <button class="action-btn like" @click.stop="toggleFavourite(event)">
                   <i class="uil" :class="isFavourite(event.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 </button>
-                <button class="action-btn book" @click.stop="bookEvent(event)">
+                <button class="action-btn book" :disabled="isFreeEvent(event)" @click.stop="bookEvent(event)">
                   Book Now
                 </button>
               </div>
@@ -175,7 +175,7 @@
           </button>
           
           <div class="modal-header">
-            <span class="modal-emoji">{{ selectedEvent.emoji || '🎉' }}</span>
+            <img :src="selectedEvent.image_url || 'https://placehold.co/280x160?text=Event'" alt="Event image" class="modal-image">
             <h2>{{ selectedEvent.title }}</h2>
           </div>
 
@@ -183,7 +183,7 @@
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
-                <span>{{ formatDate(selectedEvent.startDate) }} at {{ formatTime(selectedEvent.startDate) }}</span>
+                <span>{{ formatDate(selectedEvent.startDate || selectedEvent.date) }} at {{ formatEventTime(selectedEvent) }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-location-point"></i>
@@ -210,7 +210,7 @@
                 <i class="uil" :class="isFavourite(selectedEvent.id) ? 'uil-heart-break' : 'uil-heart'"></i>
                 {{ isFavourite(selectedEvent.id) ? 'Remove from Favourites' : 'Add to Favourites' }}
               </button>
-              <button class="modal-btn book" @click="bookEvent(selectedEvent)">
+              <button class="modal-btn book" :disabled="isFreeEvent(selectedEvent)" @click="bookEvent(selectedEvent)">
                 Book Tickets
               </button>
             </div>
@@ -222,16 +222,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useEventStore } from '@/stores/event'
-import { useFavouritesStore } from '@/stores/favourites'
-import { useAuthStore } from '@/stores/auth'
+import { useStore } from 'vuex'
 
 const router = useRouter()
-const eventStore = useEventStore()
-const favouritesStore = useFavouritesStore()
-const authStore = useAuthStore()
+const store = useStore()
 
 // State
 const searchQuery = ref('')
@@ -240,34 +236,181 @@ const selectedEvent = ref(null)
 const page = ref(1)
 const hasMoreEvents = ref(true)
 const selectedCategories = ref([])
-const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-// Computed
-const currentYear = computed(() => eventStore.currentMonth.getFullYear())
-const currentMonthName = computed(() => {
-  return eventStore.currentMonth.toLocaleString('default', { month: 'long' })
+const selectedDate = ref('')
+const currentDate = ref(new Date())
+const loading = ref(false)
+const fallbackEvents = ref([])
+const categoryNameById = computed(() => {
+  const categories = store.state.categories || []
+  return categories.reduce((acc, category) => {
+    const id = String(category.id ?? category.category_id)
+    const name = category.name ?? category.category_name
+    if (id && name) acc[id] = name
+    return acc
+  }, {})
 })
 
-const userLocation = computed(() => {
-  return authStore.user?.location || 'Cape Town'
+const defaultExploreEvents = [
+  {
+    id: 'exp-1',
+    title: 'City Rooftop Social',
+    description: 'Meet new people with live DJs and skyline views.',
+    area: 'City Centre',
+    category: 'Social Vibes',
+    price: 140,
+    startDate: '2026-03-20T19:00:00',
+    image_url: ''
+  },
+  {
+    id: 'exp-2',
+    title: 'Cape Food Tasting Walk',
+    description: 'Guided tasting tour across local food spots.',
+    area: 'Woodstock',
+    category: 'Food & Drink',
+    price: 220,
+    startDate: '2026-03-21T13:00:00',
+    image_url: ''
+  },
+  {
+    id: 'exp-3',
+    title: 'Beginner Salsa Night',
+    description: 'Intro dance class followed by social dancing.',
+    area: 'Sea Point',
+    category: 'Wellness & Body',
+    price: 90,
+    startDate: '2026-03-22T18:30:00',
+    image_url: ''
+  },
+  {
+    id: 'exp-4',
+    title: 'Saturday Creative Market',
+    description: 'Artisan stalls, live art, and street food.',
+    area: 'Observatory',
+    category: 'Creative Making',
+    price: 0,
+    startDate: '2026-03-23T10:30:00',
+    image_url: ''
+  }
+]
+
+// Interest categories from preferences
+const interestCategories = [
+  { id: 1, name: 'Social Vibes', emoji: '🎉' },
+  { id: 2, name: 'Intellectual & Skills', emoji: '🧠' },
+  { id: 3, name: 'Arts & Culture', emoji: '🎨' },
+  { id: 4, name: 'Wellness & Body', emoji: '🧘' },
+  { id: 5, name: 'Creative Making', emoji: '✂️' },
+  { id: 6, name: 'Community & Cause', emoji: '🤝' },
+  { id: 7, name: 'Professional Networking', emoji: '💼' },
+  { id: 8, name: 'Life Stages & Niches', emoji: '🌱' },
+  { id: 9, name: 'Seasonal Annual', emoji: '🎪' },
+  { id: 10, name: 'Weird & Hyperlocal', emoji: '🌀' },
+  { id: 11, name: 'Food & Drink', emoji: '🍽️' },
+  { id: 12, name: 'Music & Nightlife', emoji: '🎵' },
+  { id: 13, name: 'Sports & Adventure', emoji: '⚽' },
+  { id: 14, name: 'Family & Kids', emoji: '👨‍👩‍👧' },
+  { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
+]
+
+const normalizedEvents = computed(() => {
+  const raw = (store.state.events || []).map((event) => {
+    const startDate = event.startDate || event.start_date || null
+    const normalizedDate = event.date || (startDate ? startDate.slice(0, 10) : null)
+    const categoryId = event.category_id ?? event.categoryId
+    const resolvedCategory = categoryNameById.value[String(categoryId)] || event.category_name || event.category || 'General'
+
+    return {
+      ...event,
+      id: event.id ?? event.event_id,
+      title: event.title ?? event.event_title ?? 'Untitled Event',
+      description: event.description ?? '',
+      area: event.area ?? event.location?.area ?? event.location ?? 'Unknown',
+      category: resolvedCategory,
+      image_url: event.image_url ?? '',
+      price: Number(event.price ?? 0),
+      startDate,
+      date: normalizedDate,
+      time: event.time ?? ''
+    }
+  })
+
+  if (raw.length > 0) return raw
+  return fallbackEvents.value
 })
+
+const filteredEvents = computed(() => {
+  let filtered = normalizedEvents.value
+
+  if (selectedDate.value) {
+    filtered = filtered.filter((event) => {
+      const eventDate = event.date || (event.startDate ? event.startDate.slice(0, 10) : '')
+      return eventDate === selectedDate.value
+    })
+  }
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter((event) =>
+      String(event.title || '').toLowerCase().includes(query) ||
+      String(event.area || '').toLowerCase().includes(query) ||
+      String(event.description || '').toLowerCase().includes(query) ||
+      String(event.category || '').toLowerCase().includes(query)
+    )
+  }
+
+  if (selectedCategories.value.length > 0) {
+    filtered = filtered.filter((event) => selectedCategories.value.includes(event.category))
+  }
+
+  return filtered.sort((a, b) => {
+    const aTime = a.startDate || `${a.date || ''} ${a.time || ''}`
+    const bTime = b.startDate || `${b.date || ''} ${b.time || ''}`
+    return String(aTime).localeCompare(String(bTime))
+  })
+})
+
+const eventsByDate = computed(() => {
+  return normalizedEvents.value.reduce((acc, event) => {
+    const dateKey = event.date || (event.startDate ? event.startDate.slice(0, 10) : null)
+    if (!dateKey) return acc
+    if (!acc[dateKey]) acc[dateKey] = []
+    acc[dateKey].push(event)
+    return acc
+  }, {})
+})
+
+const eventsThisMonth = computed(() => {
+  const currentMonth = currentDate.value.getMonth()
+  const currentYear = currentDate.value.getFullYear()
+
+  return normalizedEvents.value.filter((event) => {
+    const dateSource = event.startDate || event.date
+    if (!dateSource) return false
+    const d = new Date(dateSource)
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+  }).length
+})
+
+const currentYear = computed(() => currentDate.value.getFullYear())
+const currentMonthName = computed(() => currentDate.value.toLocaleString('default', { month: 'long' }))
+const userLocation = computed(() => store.state.me?.location || 'Cape Town')
 
 const selectedDateLabel = computed(() => {
-  if (!eventStore.selectedDate) return 'All Events'
+  if (!selectedDate.value) return 'All Events'
   const options = { weekday: 'long', month: 'long', day: 'numeric' }
-  return new Date(eventStore.selectedDate).toLocaleDateString(undefined, options)
+  return new Date(selectedDate.value).toLocaleDateString(undefined, options)
 })
+
+const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const calendarDays = computed(() => {
   const year = currentYear.value
-  const month = eventStore.currentMonth.getMonth()
-  
+  const month = currentDate.value.getMonth()
+
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  
   const days = []
-  
-  // Previous month days
+
   const firstDayOfWeek = firstDay.getDay()
   for (let i = firstDayOfWeek; i > 0; i--) {
     const date = new Date(year, month, 1 - i)
@@ -277,8 +420,7 @@ const calendarDays = computed(() => {
       isCurrentMonth: false
     })
   }
-  
-  // Current month days
+
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const date = new Date(year, month, i)
     days.push({
@@ -287,8 +429,7 @@ const calendarDays = computed(() => {
       isCurrentMonth: true
     })
   }
-  
-  // Next month days (to fill 6 rows)
+
   const remainingDays = 42 - days.length
   for (let i = 1; i <= remainingDays; i++) {
     const date = new Date(year, month + 1, i)
@@ -298,18 +439,31 @@ const calendarDays = computed(() => {
       isCurrentMonth: false
     })
   }
-  
+
   return days
 })
 
-const interestCategories = computed(() => {
-  return authStore.user?.preferences?.interests?.map(name => ({
-    name,
-    emoji: getEmojiForCategory(name)
-  })) || []
-})
+const eventStore = {
+  get loading() {
+    return loading.value
+  },
+  get filteredEvents() {
+    return filteredEvents.value
+  },
+  get selectedDate() {
+    return selectedDate.value
+  },
+  get eventsThisMonth() {
+    return eventsThisMonth.value
+  },
+  get currentMonth() {
+    return currentDate.value
+  },
+  get eventsByDate() {
+    return eventsByDate.value
+  }
+}
 
-// Methods
 const formatDateForComparison = (date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -319,144 +473,96 @@ const formatDateForComparison = (date) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return ''
-  const options = { year: 'numeric', month: 'long', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
+  return new Date(dateString).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-const formatTime = (dateString) => {
-  if (!dateString) return ''
-  const options = { hour: '2-digit', minute: '2-digit' }
-  return new Date(dateString).toLocaleTimeString(undefined, options)
-}
+const formatTime = (value) => {
+  if (!value) return ''
 
-const isToday = (dateString) => {
-  const today = formatDateForComparison(new Date())
-  return dateString === today
-}
+  // Handles values like "18:30" / "18:30:00"
+  if (typeof value === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+    const [h, m] = value.split(':')
+    const d = new Date()
+    d.setHours(Number(h), Number(m), 0, 0)
+    return d.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
 
-const hasEventsOnDate = (dateString) => {
-  return eventStore.eventsByDate[new Date(dateString).toDateString()]?.length > 0
-}
-
-const selectDate = (date) => {
-  eventStore.setDateFilter(date)
-}
-
-const previousMonth = () => {
-  eventStore.previousMonth()
-  fetchEventsForMonth()
-}
-
-const nextMonth = () => {
-  eventStore.nextMonth()
-  fetchEventsForMonth()
-}
-
-const fetchEventsForMonth = async () => {
-  const year = currentYear.value
-  const month = String(eventStore.currentMonth.getMonth() + 1).padStart(2, '0')
-  const startDate = `${year}-${month}-01`
-  const endDate = `${year}-${month}-${new Date(year, eventStore.currentMonth.getMonth() + 1, 0).getDate()}`
-  
-  await eventStore.fetchEvents({
-    startDate,
-    endDate,
-    page: 1,
-    limit: 50
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
   })
 }
 
-const handleSearch = async () => {
-  await eventStore.searchEvents(searchQuery.value)
+const formatEventTime = (event) => {
+  if (!event) return ''
+  const candidate = event.startDate || event.start_date || (event.date && event.time ? `${event.date}T${event.time}` : event.time)
+  return formatTime(candidate)
 }
+
+const isToday = (dateString) => dateString === formatDateForComparison(new Date())
+const hasEventsOnDate = (dateString) => (eventStore.eventsByDate[dateString] || []).length > 0
+const selectDate = (date) => { selectedDate.value = date }
+const previousMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
+const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
+const handleSearch = () => {}
 
 const toggleCategory = (category) => {
   const index = selectedCategories.value.indexOf(category)
-  if (index === -1) {
-    selectedCategories.value.push(category)
-  } else {
-    selectedCategories.value.splice(index, 1)
-  }
+  if (index === -1) selectedCategories.value.push(category)
+  else selectedCategories.value.splice(index, 1)
 }
 
-const applyFilters = () => {
-  eventStore.setCategoryFilter(selectedCategories.value)
-  showFilters.value = false
-}
+const applyFilters = () => { showFilters.value = false }
 
 const clearFilters = () => {
   selectedCategories.value = []
-  eventStore.clearFilters()
   searchQuery.value = ''
+  selectedDate.value = ''
   showFilters.value = false
 }
 
-const viewEventDetails = (event) => {
-  selectedEvent.value = event
-}
+const viewEventDetails = (event) => { selectedEvent.value = event }
 
-const isFavourite = (eventId) => {
-  return favouritesStore.favouriteIds.includes(eventId)
-}
+const favouriteIds = computed(() => (store.state.favourites || []).map((f) => String(f.id ?? f.event_id)))
+const isFavourite = (eventId) => favouriteIds.value.includes(String(eventId))
 
 const toggleFavourite = async (event) => {
-  if (isFavourite(event.id)) {
-    await favouritesStore.removeFromFavourites(event.id)
-    showNotification('Removed from favourites')
-  } else {
-    await favouritesStore.addToFavourites(event)
-    showNotification('Added to favourites!')
+  try {
+    if (isFavourite(event.id)) {
+      await store.dispatch('removeFavourite', event.id)
+      showNotification('Removed from favourites')
+    } else {
+      await store.dispatch('addFavourite', event)
+      showNotification('Added to favourites!')
+    }
+  } catch {
+    showNotification('Error updating favourites', 'error')
   }
 }
 
+const isFreeEvent = (event) => Number(event?.price ?? 0) === 0
+
 const bookEvent = (event) => {
+  if (isFreeEvent(event)) return
   router.push({
     name: 'payments',
     query: {
       eventId: event.id,
       title: event.title,
-      date: formatDate(event.startDate) + ' • ' + formatTime(event.startDate),
+      date: `${formatDate(event.startDate || event.date)} • ${formatEventTime(event)}`,
       price: event.price
     }
   })
 }
 
-const loadMoreEvents = async () => {
-  page.value++
-  await eventStore.fetchEvents({ 
-    page: page.value,
-    limit: 20,
-    ...(eventStore.selectedDate && { date: eventStore.selectedDate }),
-    ...(selectedCategories.value.length > 0 && { categories: selectedCategories.value })
-  })
-  
-  if (eventStore.events.length === 0) {
-    hasMoreEvents.value = false
-  }
-}
-
-const getEmojiForCategory = (category) => {
-  const emojiMap = {
-    'Social Vibes': '🎉',
-    'Intellectual & Skills': '🧠',
-    'Arts & Culture': '🎨',
-    'Wellness & Body': '🧘',
-    'Creative Making': '✂️',
-    'Community & Cause': '🤝',
-    'Professional Networking': '💼',
-    'Life Stages & Niches': '🌱',
-    'Seasonal Annual': '🎪',
-    'Weird & Hyperlocal': '🌀',
-    'Food & Drink': '🍽️',
-    'Music & Nightlife': '🎵',
-    'Sports & Adventure': '⚽',
-    'Family & Kids': '👨‍👩‍👧',
-    'Spirituality & Mindfulness': '🕊️'
-  }
-  return emojiMap[category] || '🎉'
-}
-
-const showNotification = (message) => {
+const showNotification = (message, type = 'success') => {
   const notification = document.createElement('div')
   notification.className = 'notification'
   notification.textContent = message
@@ -464,40 +570,63 @@ const showNotification = (message) => {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: linear-gradient(135deg, #4caf50, #45a049);
+    background: ${type === 'success' ? 'linear-gradient(135deg, #4caf50, #45a049)' : 'linear-gradient(135deg, #ff6b6b, #ff5252)'};
     color: white;
     padding: 12px 24px;
     border-radius: 50px;
-    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     z-index: 1000;
     animation: slideIn 0.3s ease;
   `
+
   document.body.appendChild(notification)
-  
+
   setTimeout(() => {
     notification.style.animation = 'slideOut 0.3s ease'
-    setTimeout(() => {
-      document.body.removeChild(notification)
-    }, 300)
+    setTimeout(() => document.body.removeChild(notification), 300)
   }, 2000)
 }
 
-// Lifecycle
-onMounted(async () => {
-  await fetchEventsForMonth()
-  await favouritesStore.fetchFavourites()
-})
+const loadEvents = async () => {
+  loading.value = true
+  try {
+    await store.dispatch('getEvents')
+    if ((store.state.events || []).length === 0) {
+      fallbackEvents.value = defaultExploreEvents
+    } else {
+      fallbackEvents.value = []
+    }
+  } catch (error) {
+    console.error('Error loading events:', error)
+    fallbackEvents.value = defaultExploreEvents
+  } finally {
+    loading.value = false
+  }
+}
 
-// Watch for filter changes
-watch(() => eventStore.selectedDate, async () => {
-  page.value = 1
-  await eventStore.fetchEvents({ 
-    date: eventStore.selectedDate,
-    page: 1,
-    limit: 20
-  })
+const loadFavourites = async () => {
+  try {
+    await store.dispatch('fetchFavourites')
+  } catch (error) {
+    console.error('Error loading favourites:', error)
+  }
+}
+
+const loadMoreEvents = async () => {
+  const previousCount = normalizedEvents.value.length
+  page.value += 1
+  await loadEvents()
+  hasMoreEvents.value = normalizedEvents.value.length > previousCount
+}
+
+onMounted(() => {
+  selectedDate.value = formatDateForComparison(new Date())
+  store.dispatch('getCategories')
+  loadEvents()
+  loadFavourites()
 })
 </script>
+
 
 <style scoped>
 /* Keep all the existing styles from original Explore.vue */
@@ -914,8 +1043,12 @@ h1 {
   margin-bottom: 10px;
 }
 
-.event-emoji {
-  font-size: 24px;
+.event-image {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .event-title {
@@ -931,6 +1064,7 @@ h1 {
   margin-bottom: 15px;
   line-height: 1.4;
 }
+
 
 .event-meta {
   display: flex;
@@ -993,6 +1127,14 @@ h1 {
   background: #45a049;
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.action-btn.book:disabled {
+  background: #9e9e9e;
+  color: #f1f1f1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .loading-state {
@@ -1138,8 +1280,11 @@ h1 {
   border-radius: 20px 20px 0 0;
 }
 
-.modal-emoji {
-  font-size: 60px;
+.modal-image {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
   margin-bottom: 15px;
   display: block;
 }
@@ -1223,6 +1368,14 @@ h1 {
   background: #45a049;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
+}
+
+.modal-btn.book:disabled {
+  background: #9e9e9e;
+  color: #f1f1f1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .slide-enter-active,

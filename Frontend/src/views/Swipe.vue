@@ -68,16 +68,80 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 import Card from '@/components/card.vue'
-import { useEventStore } from '@/stores/event'
-import { useFavouritesStore } from '@/stores/favourites'
-import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
-const eventStore = useEventStore()
-const favouritesStore = useFavouritesStore()
-const authStore = useAuthStore()
+const store = useStore()
+const loading = ref(false)
+const categoryNameById = computed(() => {
+  const categories = store.state.categories || []
+  return categories.reduce((acc, category) => {
+    const id = String(category.id ?? category.category_id)
+    const name = category.name ?? category.category_name
+    if (id && name) acc[id] = name
+    return acc
+  }, {})
+})
+
+const events = computed(() =>
+  (store.state.events || []).map((event) => {
+    const area = event.area ?? event.location?.area ?? event.location ?? 'Unknown'
+    const startDate = event.startDate ?? event.start_date ?? (event.date && event.time ? `${event.date}T${event.time}` : event.date ?? null)
+    const categoryId = event.category_id ?? event.categoryId
+    const resolvedCategory = categoryNameById.value[String(categoryId)] || event.category_name || event.category || 'General'
+
+    return {
+      ...event,
+      id: event.id ?? event.event_id,
+      title: event.title ?? event.event_title ?? 'Untitled Event',
+      description: event.description ?? '',
+      area,
+      location: typeof event.location === 'object' ? event.location : { area },
+      category: resolvedCategory,
+      price: Number(event.price ?? 0),
+      image_url: event.image_url ?? event.image ?? '',
+      emoji: event.emoji ?? '🎉',
+      startDate
+    }
+  })
+)
+const favourites = computed(() => store.state.favourites || [])
+const favouriteIds = computed(() => favourites.value.map((f) => String(f.id ?? f.event_id)))
+const user = computed(() => store.state.me || JSON.parse(localStorage.getItem('user') || 'null'))
+
+// Keep template usage stable while sourcing data/actions from Vuex index store.
+const eventStore = {
+  get loading() {
+    return loading.value
+  },
+  get events() {
+    return events.value
+  },
+  async fetchEvents() {
+    loading.value = true
+    try {
+      await store.dispatch('getEvents')
+    } catch (error) {
+      console.error('Failed to fetch events:', error)
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const favouritesStore = {
+  get favouritesCount() {
+    return favourites.value.length
+  },
+  async addToFavourites(event) {
+    return store.dispatch('addFavourite', event)
+  },
+  async fetchFavourites() {
+    return store.dispatch('fetchFavourites')
+  }
+}
+
+const isFavourite = (eventId) => favouriteIds.value.includes(String(eventId))
 
 // State
 const currentEventIndex = ref(0)
@@ -102,13 +166,15 @@ const remainingCount = computed(() => {
 
 // Methods
 const handleSwipeComplete = async (direction, event) => {
-  console.log(`Event swiped ${direction}:`, event.title)
+  console.log(`Event swiped ${direction}:`, event?.title || event?.event_title || 'Untitled Event')
   
   // Handle like/nope actions
   if (direction === 'right') {
-    // User liked the event - add to favourites
-    await favouritesStore.addToFavourites(event)
-    showNotification('Added to favourites!')
+    if (!isFavourite(event.id)) {
+      await favouritesStore.addToFavourites(event)
+      await favouritesStore.fetchFavourites()
+      showNotification('Added to favourites!')
+    }
   }
   
   // Increment index to show next event
@@ -121,25 +187,10 @@ const handleSwipeComplete = async (direction, event) => {
 }
 
 const loadMoreEvents = async () => {
+  const previousCount = eventStore.events.length
   page.value++
-  await eventStore.fetchEvents({ 
-    page: page.value,
-    limit: 10,
-    ...getUserPreferences()
-  })
-  
-  if (eventStore.events.length === 0) {
-    hasMoreEvents.value = false
-  }
-}
-
-const getUserPreferences = () => {
-  const preferences = authStore.user?.preferences || {}
-  return {
-    categories: preferences.interests,
-    maxDistance: preferences.maxDistance,
-    location: preferences.location
-  }
+  await eventStore.fetchEvents()
+  hasMoreEvents.value = eventStore.events.length > previousCount
 }
 
 const handleDragStart = () => {
@@ -190,25 +241,18 @@ const resetEvents = () => {
   currentEventIndex.value = 0
   page.value = 1
   hasMoreEvents.value = true
-  eventStore.fetchEvents({ 
-    page: 1,
-    limit: 10,
-    ...getUserPreferences()
-  })
+  eventStore.fetchEvents()
 }
 
 // Lifecycle
 onMounted(async () => {
-  await eventStore.fetchEvents({ 
-    page: 1,
-    limit: 10,
-    ...getUserPreferences()
-  })
+  await store.dispatch('getCategories')
+  await eventStore.fetchEvents()
   await favouritesStore.fetchFavourites()
 })
 
 // Watch for auth changes
-watch(() => authStore.user, () => {
+watch(user, () => {
   resetEvents()
 })
 </script>
@@ -396,17 +440,22 @@ h1 {
 
 .no-cards.active {
   display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  width: min(400px, calc(100% - 40px));
+  z-index: 20;
   animation: fadeIn 0.5s ease;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 

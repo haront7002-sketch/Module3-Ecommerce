@@ -3,7 +3,7 @@ import { db } from '../Config/database.js';
 // Add to favourites
 const postFavouritesDb = async (user_id, event_id) => {
     const [result] = await db.query(
-        'INSERT INTO favourites (user_id, event_id, created_at) VALUES (?, ?, UNIX_TIMESTAMP())',
+        'INSERT INTO favourites (user_id, event_id, created_at) VALUES (?, ?, NOW())',
         [user_id, event_id]
     );
     return result;
