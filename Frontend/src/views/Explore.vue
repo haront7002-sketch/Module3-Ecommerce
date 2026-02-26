@@ -3,7 +3,6 @@
     <!-- Top bar with search and filter -->
     <div class="explore-header">
       <div class="brand">
-        <div class="logo">SOS</div>
         <div>
           <h1>Explore Events</h1>
           <p class="subtitle">Discover what's happening in {{ userLocation || 'Cape Town' }}</p>
@@ -249,49 +248,6 @@ const categoryNameById = computed(() => {
     return acc
   }, {})
 })
-
-const defaultExploreEvents = [
-  {
-    id: 'exp-1',
-    title: 'City Rooftop Social',
-    description: 'Meet new people with live DJs and skyline views.',
-    area: 'City Centre',
-    category: 'Social Vibes',
-    price: 140,
-    startDate: '2026-03-20T19:00:00',
-    image_url: ''
-  },
-  {
-    id: 'exp-2',
-    title: 'Cape Food Tasting Walk',
-    description: 'Guided tasting tour across local food spots.',
-    area: 'Woodstock',
-    category: 'Food & Drink',
-    price: 220,
-    startDate: '2026-03-21T13:00:00',
-    image_url: ''
-  },
-  {
-    id: 'exp-3',
-    title: 'Beginner Salsa Night',
-    description: 'Intro dance class followed by social dancing.',
-    area: 'Sea Point',
-    category: 'Wellness & Body',
-    price: 90,
-    startDate: '2026-03-22T18:30:00',
-    image_url: ''
-  },
-  {
-    id: 'exp-4',
-    title: 'Saturday Creative Market',
-    description: 'Artisan stalls, live art, and street food.',
-    area: 'Observatory',
-    category: 'Creative Making',
-    price: 0,
-    startDate: '2026-03-23T10:30:00',
-    image_url: ''
-  }
-]
 
 // Interest categories from preferences
 const interestCategories = [

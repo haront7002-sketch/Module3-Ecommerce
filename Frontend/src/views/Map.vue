@@ -3,7 +3,6 @@
     <!-- Top bar -->
     <div class="map-header">
       <div class="brand">
-        <div class="logo">SOS</div>
         <div>
           <h1>{{ userLocation || 'Cape Town' }} Events Map</h1>
           <p class="subtitle">Explore what's happening near you</p>

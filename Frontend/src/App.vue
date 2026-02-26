@@ -18,27 +18,39 @@
       <header v-if="isAuthenticated">
         <div class="wrapper">
           <nav class="main-nav">
-            <RouterLink to="/" class="nav-link" active-class="active">
-              <i class="fas fa-home"></i> Home
-            </RouterLink>
-            <RouterLink to="/explore" class="nav-link" active-class="active">
-              <i class="fas fa-compass"></i> Explore
-            </RouterLink>
-            <RouterLink to="/map" class="nav-link" active-class="active">
-              <i class="fas fa-map"></i> Map
-            </RouterLink>
-            <RouterLink to="/favourites" class="nav-link" active-class="active">
-              <i class="fas fa-heart"></i> Favourites
-            </RouterLink>
-            <RouterLink to="/payments" class="nav-link" active-class="active">
-              <i class="fas fa-credit-card"></i> Payment
-            </RouterLink>
-            <RouterLink to="/profile" class="nav-link" active-class="active">
-              <i class="fas fa-user"></i> Profile
-            </RouterLink>
-            <button @click="handleLogout" class="nav-link logout-btn">
-              <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
+            <div class="nav-left">
+              <div class="logo">
+                <span>SOS</span>
+              </div>
+            </div>
+            <div class="nav-center">
+              <RouterLink to="/" class="nav-link" active-class="active">
+                <i class="fas fa-home"></i> Home
+              </RouterLink>
+              <RouterLink to="/explore" class="nav-link" active-class="active">
+                <i class="fas fa-compass"></i> Explore
+              </RouterLink>
+              <RouterLink to="/map" class="nav-link" active-class="active">
+                <i class="fas fa-map"></i> Map
+              </RouterLink>
+              <RouterLink to="/favourites" class="nav-link" active-class="active">
+                <i class="fas fa-heart"></i> Favourites
+              </RouterLink>
+              <RouterLink to="/about" class="nav-link" active-class="active">
+                <i class="fas fa-info-circle"></i> About
+              </RouterLink>
+              <RouterLink to="/payments" class="nav-link" active-class="active">
+                <i class="fas fa-credit-card"></i> Payment
+              </RouterLink>
+              <RouterLink to="/profile" class="nav-link" active-class="active">
+                <i class="fas fa-user"></i> Profile
+              </RouterLink>
+            </div>
+            <div class="nav-right">
+              <button @click="handleLogout" class="nav-link logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </button>
+            </div>
           </nav>
         </div>
       </header>
@@ -156,8 +168,8 @@ header {
 
 .main-nav {
   display: flex;
-  gap: 10px;
-  justify-content: center;
+  gap: 20px;
+  justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
   background: rgba(255, 255, 255, 0.15);
@@ -166,6 +178,42 @@ header {
   margin-bottom: 20px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.nav-center {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Updated Logo Styles - White Circle with Gradient SOS */
+.logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 22px;
+  background: white;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  margin-right: 10px;
+}
+
+.logo span {
+  background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
 }
 
 .nav-link {
@@ -215,6 +263,15 @@ header {
     flex-direction: column;
     border-radius: 20px;
     padding: 15px;
+    gap: 15px;
+  }
+  
+  .nav-left, .nav-center, .nav-right {
+    width: 100%;
+  }
+  
+  .nav-center {
+    flex-direction: column;
   }
   
   .nav-link {

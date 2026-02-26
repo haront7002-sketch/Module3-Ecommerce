@@ -6,6 +6,7 @@ import Explore from "@/views/Explore.vue";
 import Favourites from "@/views/Favourites.vue";
 import Map from "@/views/Map.vue";
 import Payments from "@/views/Payments.vue";
+import About from "@/views/About.vue"; // Import the About page
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +33,12 @@ const router = createRouter({
       path: "/map",
       name: "map",
       component: Map,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: "/about",
+      name: "about",
+      component: About,
       meta: { requiresAuth: true }
     },
     {
