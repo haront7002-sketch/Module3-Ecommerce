@@ -45,7 +45,7 @@
           @click="viewEventDetails(event)"
         >
           <div class="card-header">
-            <span class="event-emoji">{{ event.emoji }}</span>
+            <img class="event-emoji" :src="event.image_url || 'https://placehold.co/72x72?text=Event'" alt="Event image" />
             <button class="remove-btn" @click.stop="removeFromFavourites(event.id)">
               <i class="uil uil-times"></i>
             </button>
@@ -60,7 +60,7 @@
                 <i class="uil uil-calendar-alt"></i> {{ formatDate(event.date) }}
               </span>
               <span class="meta-item">
-                <i class="uil uil-clock"></i> {{ event.time }}
+                <i class="uil uil-clock"></i> {{ formatTime(event) }}
               </span>
               <span class="meta-item">
                 <i class="uil uil-location-point"></i> {{ event.area }}
@@ -72,7 +72,7 @@
           </div>
           
           <div class="card-footer">
-            <button class="btn-book" @click.stop="bookEvent(event)">
+            <button class="btn-book" :disabled="isFreeEvent(event)" @click.stop="bookEvent(event)">
               <i class="uil uil-shopping-cart"></i> Book Tickets
             </button>
           </div>
@@ -89,7 +89,7 @@
           </button>
           
           <div class="modal-header">
-            <span class="modal-emoji">{{ selectedEvent.emoji }}</span>
+            <img class="modal-emoji" :src="selectedEvent.image_url || 'https://placehold.co/120x120?text=Event'" alt="Event image" />
             <h2>{{ selectedEvent.title }}</h2>
           </div>
 
@@ -97,7 +97,7 @@
             <div class="modal-info">
               <div class="info-row">
                 <i class="uil uil-calendar-alt"></i>
-                <span>{{ formatDate(selectedEvent.date) }} at {{ selectedEvent.time }}</span>
+                <span>{{ formatDate(selectedEvent.date) }} at {{ formatTime(selectedEvent) }}</span>
               </div>
               <div class="info-row">
                 <i class="uil uil-location-point"></i>
@@ -119,7 +119,7 @@
               <button class="modal-btn remove" @click="removeFromFavourites(selectedEvent.id)">
                 <i class="uil uil-heart-broken"></i> Remove
               </button>
-              <button class="modal-btn book" @click="bookEvent(selectedEvent)">
+              <button class="modal-btn book" :disabled="isFreeEvent(selectedEvent)" @click="bookEvent(selectedEvent)">
                 <i class="uil uil-shopping-cart"></i> Book Tickets
               </button>
             </div>
@@ -131,61 +131,123 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 
 const router = useRouter()
-const favourites = ref([])
+const store = useStore()
 const selectedEvent = ref(null)
 const loading = ref(true)
+const categoryNameById = computed(() => {
+  const categories = store.state.categories || []
+  return categories.reduce((acc, category) => {
+    const id = String(category.id ?? category.category_id)
+    const name = category.name ?? category.category_name
+    if (id && name) acc[id] = name
+    return acc
+  }, {})
+})
 
-// Load favourites from localStorage
-const loadFavourites = () => {
-  loading.value = true
-  const stored = localStorage.getItem('favourites')
-  favourites.value = stored ? JSON.parse(stored) : []
-  loading.value = false
-}
+// Computed
+const favourites = computed(() =>
+  (store.state.favourites || []).map((event) => ({
+    ...event,
+    id: event.id ?? event.event_id,
+    title: event.title ?? event.event_title ?? 'Untitled Event',
+    area: event.area ?? event.location ?? 'Unknown',
+    time: event.time ?? '',
+    date: event.date ?? null,
+    category:
+      categoryNameById.value[String(event.category_id ?? event.categoryId)] ??
+      event.category ??
+      event.category_name ??
+      'General',
+    image_url: event.image_url ?? event.image ?? ''
+  }))
+)
 
 // Format date
 const formatDate = (dateString) => {
+  if (!dateString) return ''
   const options = { year: 'numeric', month: 'short', day: 'numeric' }
   return new Date(dateString).toLocaleDateString(undefined, options)
 }
 
-// Remove from favourites
-const removeFromFavourites = (eventId) => {
-  favourites.value = favourites.value.filter(e => e.id !== eventId)
-  localStorage.setItem('favourites', JSON.stringify(favourites.value))
-  
-  if (selectedEvent.value && selectedEvent.value.id === eventId) {
-    selectedEvent.value = null
+const formatTime = (event) => {
+  if (!event) return ''
+
+  const candidate = event.startDate || event.start_date || (event.date && event.time ? `${event.date}T${event.time}` : event.time)
+  if (!candidate) return ''
+
+  if (typeof candidate === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(candidate)) {
+    const [h, m] = candidate.split(':')
+    const d = new Date()
+    d.setHours(Number(h), Number(m), 0, 0)
+    return d.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
   }
-  
-  // Show notification
-  showNotification('Removed from favourites')
+
+  const parsed = new Date(candidate)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+}
+
+// Remove from favourites
+const removeFromFavourites = async (eventId) => {
+  try {
+    await store.dispatch('removeFavourite', eventId)
+    if (selectedEvent.value && selectedEvent.value.id === eventId) {
+      selectedEvent.value = null
+    }
+    showNotification('Removed from favourites')
+  } catch (error) {
+    showNotification('Error removing from favourites', 'error')
+  }
 }
 
 // View event details
 const viewEventDetails = (event) => {
   selectedEvent.value = event
 }
+  
+const isFreeEvent = (event) => Number(event?.price ?? 0) === 0
 
 // Book event
 const bookEvent = (event) => {
+  if (isFreeEvent(event)) return
   router.push({
     name: 'payments',
     query: {
       eventId: event.id,
       title: event.title,
-      date: formatDate(event.date) + ' • ' + event.time,
+      date: formatDate(event.date) + ' • ' + formatTime(event),
       price: event.price
     }
   })
 }
 
+// Load favourites
+const loadFavourites = async () => {
+  loading.value = true
+  try {
+    await store.dispatch('fetchFavourites')
+  } catch (error) {
+    console.error('Error loading favourites:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 // Show notification
-const showNotification = (message) => {
+const showNotification = (message, type = 'success') => {
   const notification = document.createElement('div')
   notification.className = 'notification'
   notification.textContent = message
@@ -193,11 +255,11 @@ const showNotification = (message) => {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: linear-gradient(135deg, #4caf50, #45a049);
+    background: ${type === 'success' ? 'linear-gradient(135deg, #4caf50, #45a049)' : 'linear-gradient(135deg, #ff6b6b, #ff5252)'};
     color: white;
     padding: 12px 24px;
     border-radius: 50px;
-    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     z-index: 1000;
     animation: slideIn 0.3s ease;
   `
@@ -212,6 +274,7 @@ const showNotification = (message) => {
 }
 
 onMounted(() => {
+  store.dispatch('getCategories')
   loadFavourites()
 })
 </script>
@@ -419,8 +482,10 @@ h1 {
 }
 
 .event-emoji {
-  font-size: 48px;
-  line-height: 1;
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 14px;
 }
 
 .remove-btn {
@@ -513,6 +578,14 @@ h1 {
   box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
 }
 
+.btn-book:disabled {
+  background: #9e9e9e;
+  color: #f1f1f1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -579,8 +652,11 @@ h1 {
 }
 
 .modal-emoji {
-  font-size: 60px;
-  margin-bottom: 15px;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin: 0 auto 15px;
   display: block;
 }
 
@@ -663,6 +739,14 @@ h1 {
   background: #45a049;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
+}
+
+.modal-btn.book:disabled {
+  background: #9e9e9e;
+  color: #f1f1f1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Transitions */

@@ -109,13 +109,13 @@
 <script>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useStore } from 'vuex'
 
 export default {
   name: 'LoginSignup',
   setup() {
     const router = useRouter()
-    const authStore = useAuthStore()
+    const store = useStore()
 
     // Generate unique ID for this component instance
     const uniqueId = Math.random().toString(36).substring(2, 10)
@@ -125,117 +125,113 @@ export default {
     const isFlipped = ref(false)
 
     const loginForm = reactive({
-        email: '',
-        password: ''
+      email: '',
+      password: ''
     })
 
     const signupForm = reactive({
-        name: '',
-        surname: '',
-        email: '',
-        password: '',
-        areaCode: ''
+      name: '',
+      surname: '',
+      email: '',
+      password: '',
+      areaCode: ''
     })
 
     // Cape Town area codes for reference
     const capeTownAreas = [
-        { code: '8001', area: 'Cape Town City Centre' },
-        { code: '8005', area: 'Sea Point' },
-        { code: '7700', area: 'Rondebosch' },
-        { code: '7708', area: 'Claremont' },
-        { code: '7800', area: 'Constantia' },
-        { code: '7945', area: 'Tokai' },
-        { code: '7806', area: 'Hout Bay' },
-        { code: '7441', area: 'Blouberg' },
-        { code: '7443', area: 'Parklands' },
-        { code: '7530', area: 'Bellville' },
-        { code: '7570', area: 'Durbanville' },
-        { code: '7640', area: 'Milnerton' },
-        { code: '7130', area: 'Somerset West' },
-        { code: '7140', area: 'Strand' },
-        { code: '7800', area: 'Kirstenhof' },
-        { code: '7945', area: 'Bergvliet' },
-        { code: '7800', area: 'Meadowridge' },
-        { code: '7708', area: 'Kenilworth' },
-        { code: '7945', area: 'Lakeside' },
-        { code: '7800', area: 'Muizenberg' }
+      { code: '8001', area: 'Cape Town City Centre' },
+      { code: '8005', area: 'Sea Point' },
+      { code: '7700', area: 'Rondebosch' },
+      { code: '7708', area: 'Claremont' },
+      { code: '7800', area: 'Constantia' },
+      { code: '7945', area: 'Tokai' },
+      { code: '7806', area: 'Hout Bay' },
+      { code: '7441', area: 'Blouberg' },
+      { code: '7443', area: 'Parklands' },
+      { code: '7530', area: 'Bellville' },
+      { code: '7570', area: 'Durbanville' },
+      { code: '7640', area: 'Milnerton' },
+      { code: '7130', area: 'Somerset West' },
+      { code: '7140', area: 'Strand' },
+      { code: '7800', area: 'Kirstenhof' },
+      { code: '7945', area: 'Bergvliet' },
+      { code: '7800', area: 'Meadowridge' },
+      { code: '7708', area: 'Kenilworth' },
+      { code: '7945', area: 'Lakeside' },
+      { code: '7800', area: 'Muizenberg' }
     ]
 
-    // Methods
-    const handleLogin = () => {
-        console.log('Login attempt:', loginForm)
-        
-        // Basic validation
-        if (!loginForm.email || !loginForm.password) {
-            alert('Please fill in all fields')
-            return
-        }
-        
-        // Use auth store
-        authStore.login(loginForm.email)
-        
-        // Set flag to show welcome animation
-        sessionStorage.setItem('justLoggedIn', 'true')
-        
-        alert(`Welcome back, ${loginForm.email}!`)
-        
-        // Reload the page to trigger animation in App.vue
-        window.location.reload()
+    const handleLogin = async () => {
+      if (!loginForm.email || !loginForm.password) {
+        alert('Please fill in all fields')
+        return
+      }
+
+      const result = await store.dispatch('login', {
+        email: loginForm.email,
+        password: loginForm.password
+      })
+
+      if (!result?.success) {
+        alert(result?.error || 'Login failed')
+        return
+      }
+
+      sessionStorage.setItem('justLoggedIn', 'true')
+      window.location.reload()
     }
 
-    const handleSignup = () => {
-        console.log('Signup attempt:', signupForm)
-        
-        // Basic validation
-        if (!signupForm.name || !signupForm.surname || !signupForm.email || !signupForm.password || !signupForm.areaCode) {
-            alert('Please fill in all fields and select your area code')
-            return
-        }
-        
-        if (signupForm.password.length < 6) {
-            alert('Password must be at least 6 characters long')
-            return
-        }
-        
-        const selectedArea = capeTownAreas.find(area => area.code === signupForm.areaCode)
-        const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
-        
-        // Use auth store
-        authStore.signup({
-            name: signupForm.name,
-            surname: signupForm.surname,
-            fullName: `${signupForm.name} ${signupForm.surname}`,
-            email: signupForm.email,
-            location: location
-        })
-        
-        // Set flag to show welcome animation
-        sessionStorage.setItem('justLoggedIn', 'true')
-        
-        alert(`Welcome to the community, ${signupForm.name}!`)
-        
-        // Reload the page to trigger animation in App.vue
-        window.location.reload()
+    const handleSignup = async () => {
+      if (!signupForm.name || !signupForm.surname || !signupForm.email || !signupForm.password || !signupForm.areaCode) {
+        alert('Please fill in all fields and select your area code')
+        return
+      }
+
+      if (signupForm.password.length < 6) {
+        alert('Password must be at least 6 characters long')
+        return
+      }
+
+      const selectedArea = capeTownAreas.find((area) => area.code === signupForm.areaCode)
+      const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
+
+      const result = await store.dispatch('register', {
+        user_name: signupForm.name,
+        user_surname: signupForm.surname,
+        email: signupForm.email,
+        password: signupForm.password,
+        country: 'South Africa',
+        zip_code: signupForm.areaCode,
+        area: location
+      })
+
+      if (!result?.success) {
+        alert(result?.error || 'Signup failed')
+        return
+      }
+
+      router.push('/preferences')
     }
 
     const forgotPassword = () => {
-        console.log('Forgot password clicked')
-        alert('Password reset functionality would be implemented here')
+      alert('Password reset functionality would be implemented here')
+      router.push('/')
     }
 
     return {
-        checkboxId,
-        isFlipped,
-        loginForm,
-        signupForm,
-        capeTownAreas,
-        handleLogin,
-        handleSignup,
-        forgotPassword
+      checkboxId,
+      isFlipped,
+      loginForm,
+      signupForm,
+      capeTownAreas,
+      handleLogin,
+      handleSignup,
+      forgotPassword
     }
   }
 }
 </script>
+
 
 <style scoped>
 [type="checkbox"]:checked,
@@ -515,55 +511,3 @@ h6 span {
     }
 }
 </style>
-
-// Methods
-const handleLogin = () => {
-    console.log('Login attempt:', loginForm)
-    
-    // Basic validation
-    if (!loginForm.email || !loginForm.password) {
-        alert('Please fill in all fields')
-        return
-    }
-    
-    // Use auth store
-    authStore.login(loginForm.email)
-    
-    // Set flag to show welcome animation
-    sessionStorage.setItem('justLoggedIn', 'true')
-    
-    // Reload the page to trigger animation in App.vue
-    window.location.reload()
-}
-
-const handleSignup = () => {
-    console.log('Signup attempt:', signupForm)
-    
-    // Basic validation
-    if (!signupForm.name || !signupForm.surname || !signupForm.email || !signupForm.password || !signupForm.areaCode) {
-        alert('Please fill in all fields and select your area code')
-        return
-    }
-    
-    if (signupForm.password.length < 6) {
-        alert('Password must be at least 6 characters long')
-        return
-    }
-    
-    const selectedArea = capeTownAreas.find(area => area.code === signupForm.areaCode)
-    const location = selectedArea ? `${selectedArea.area} (${selectedArea.code})` : signupForm.areaCode
-    
-    // Use auth store
-    authStore.signup({
-        name: signupForm.name,
-        surname: signupForm.surname,
-        fullName: `${signupForm.name} ${signupForm.surname}`,
-        email: signupForm.email,
-        location: location
-    })
-    
-    // Set flag to show welcome animation
-    sessionStorage.setItem('justLoggedIn', 'true')
-    
-    // Reload the page to trigger animation in App.vue
-    window.location.reload()

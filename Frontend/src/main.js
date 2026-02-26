@@ -1,20 +1,12 @@
 import './assets/main.css'
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import store from './stores'
 import './style.css'
 
-// Import Font Awesome (for icons)
-import '@fortawesome/fontawesome-free/css/all.css'
-
-
-// Create Pinia instance
-const pinia = createPinia()
 const app = createApp(App)
-
-// Use plugins
-app.use(pinia)
+app.use(store)
 app.use(router)
 
 // Global error handler (optional)

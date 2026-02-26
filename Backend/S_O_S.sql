@@ -4,6 +4,9 @@
 -- ------------------------------------------------------
 -- Server version	8.0.44
 
+CREATE DATABASE IF NOT  EXISTS s_o_s;
+USE s_o_s;
+
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -18,8 +21,6 @@
 --
 -- Table structure for table `cart`
 --
-CREATE DATABASE s_o_s;
-USE s_o_s;
 
 DROP TABLE IF EXISTS `cart`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

@@ -1,5 +1,15 @@
 import db from '../Config/database.js';
 
+let cachedUserColumns = null;
+
+const getUserColumns = async () => {
+    if (cachedUserColumns) return cachedUserColumns;
+
+    const [rows] = await db.execute(`SHOW COLUMNS FROM users`);
+    cachedUserColumns = new Set(rows.map((row) => row.Field));
+    return cachedUserColumns;
+};
+
 const User = {
 
     // Create user
@@ -10,15 +20,34 @@ const User = {
             email,
             password,
             country,
-            zip_code
+            zip_code,
+            area
         } = userData;
 
-        const [result] = await db.execute(
-            `INSERT INTO users 
-            (user_name, user_surname, email, password, country, zip_code, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-            [user_name, user_surname, email, password, country, zip_code]
-        );
+        const columns = await getUserColumns();
+
+        let insertSql = '';
+        let values = [];
+
+        if (columns.has('country') && columns.has('zip_code')) {
+            if (columns.has('created_at')) {
+                insertSql = `INSERT INTO users (user_name, user_surname, email, password, country, zip_code, created_at)
+                             VALUES (?, ?, ?, ?, ?, ?, NOW())`;
+                values = [user_name, user_surname, email, password, country || '', zip_code || ''];
+            } else {
+                insertSql = `INSERT INTO users (user_name, user_surname, email, password, country, zip_code)
+                             VALUES (?, ?, ?, ?, ?, ?)`;
+                values = [user_name, user_surname, email, password, country || '', zip_code || ''];
+            }
+        } else if (columns.has('area')) {
+            insertSql = `INSERT INTO users (user_name, user_surname, email, password, area)
+                         VALUES (?, ?, ?, ?, ?)`;
+            values = [user_name, user_surname, email, password, area || zip_code || country || 'Unknown'];
+        } else {
+            throw new Error('users table is missing required location columns');
+        }
+
+        const [result] = await db.execute(insertSql, values);
 
         return {
              user_id: result.insertId,
@@ -38,8 +67,16 @@ const User = {
 
     // Find user by id (without password)
     findById: async (user_id) => {
+        const columns = await getUserColumns();
+
+        const selectFields = ['user_id', 'user_name', 'user_surname', 'email'];
+        if (columns.has('country')) selectFields.push('country');
+        if (columns.has('zip_code')) selectFields.push('zip_code');
+        if (columns.has('area')) selectFields.push('area');
+        if (columns.has('created_at')) selectFields.push('created_at');
+
         const [rows] = await db.execute(
-            `SELECT user_id, user_name, user_surname, email, country, zip_code, created_at
+            `SELECT ${selectFields.join(', ')}
              FROM users
              WHERE user_id = ?`,
             [user_id]
