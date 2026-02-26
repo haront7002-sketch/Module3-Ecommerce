@@ -11,7 +11,7 @@
 
       <div class="stats">
         <span class="stat-item">
-          <i class="uil uil-map-marker"></i> {{ eventStore.filteredEvents.length }} events
+          <i class="uil uil-map-marker"></i> {{ visibleEventCount }} events
         </span>
       </div>
     </div>
@@ -35,7 +35,7 @@
       <aside class="panel glass-card">
         <div class="panel-header">
           <h2>Events</h2>
-          <span class="pill">{{ eventStore.filteredEvents.length }}</span>
+          <span class="pill">{{ visibleEventCount }}</span>
         </div>
 
         <div v-if="eventStore.loading" class="loading-state">
@@ -107,6 +107,7 @@ const loading = ref(false)
 const page = ref(1)
 const hasMoreEvents = ref(true)
 const fallbackEvents = ref([])
+const visibleEventCount = ref(0)
 const CAPE_TOWN_CENTER = { lat: -33.9249, lng: 18.4241 }
 
 const defaultMapEvents = [
@@ -298,7 +299,15 @@ const formatDate = (dateValue) => {
   })
 }
 
+const isFreeEvent = (ev) => Number(ev?.price ?? 0) === 0
+
 const popupHtml = (ev) => {
+  const isFree = isFreeEvent(ev)
+  const buttonText = isFree ? 'Free' : 'Book Now'
+  const buttonStyle = isFree
+    ? 'padding:8px 12px;border-radius:20px;border:1px solid #b8b8b8;background:#9e9e9e;color:#f1f1f1;cursor:not-allowed;width:100%;'
+    : 'padding:8px 12px;border-radius:20px;border:0;background:#4caf50;color:#fff;cursor:pointer;width:100%;'
+
   return `
     <div style="min-width:220px">
       <div style="display:flex; gap:10px; align-items:flex-start;">
@@ -308,8 +317,8 @@ const popupHtml = (ev) => {
           <div style="margin:0 0 6px; color:#666; font-size:12px;">${ev.area || ''}</div>
           <div style="margin:0 0 8px; font-size:12px; color:#444;">${ev.description || ''}</div>
           <div style="margin:0 0 10px; font-size:12px;"><b style="color:#333;">Price:</b> <span style="color:#4caf50;">R ${ev.price || 0}</span></div>
-          <button id="pay-${ev.id}" style="padding:8px 12px;border-radius:20px;border:0;background:#4caf50;color:#fff;cursor:pointer;width:100%;">
-            Book Tickets
+          <button id="pay-${ev.id}" ${isFree ? 'disabled' : ''} style="${buttonStyle}">
+            ${buttonText}
           </button>
         </div>
       </div>
@@ -326,6 +335,7 @@ const wirePopupButtons = (ev) => {
     setTimeout(() => {
       const payBtn = document.getElementById(`pay-${ev.id}`)
       if (payBtn) {
+        if (isFreeEvent(ev)) return
         payBtn.onclick = (e) => {
           e.stopPropagation()
           router.push({
@@ -371,6 +381,22 @@ const updateMarkers = (eventsToPlot) => {
     const group = L.featureGroup(validEvents.map((ev) => L.marker([ev.lat, ev.lng])))
     map.fitBounds(group.getBounds(), { padding: [50, 50] })
   }
+
+  updateVisibleEventCount()
+}
+
+const updateVisibleEventCount = () => {
+  if (!map) {
+    visibleEventCount.value = filteredEvents.value.length
+    return
+  }
+
+  const bounds = map.getBounds()
+  visibleEventCount.value = filteredEvents.value.filter((ev) =>
+    Number.isFinite(ev.lat) &&
+    Number.isFinite(ev.lng) &&
+    bounds.contains([ev.lat, ev.lng])
+  ).length
 }
 
 const handleSearch = () => {
@@ -397,6 +423,8 @@ onMounted(async () => {
 
   await eventStore.fetchEvents()
   updateMarkers(filteredEvents.value)
+  map.on('moveend zoomend', updateVisibleEventCount)
+  updateVisibleEventCount()
 })
 
 onBeforeUnmount(() => {
@@ -405,6 +433,7 @@ onBeforeUnmount(() => {
   })
   markerById.clear()
   if (map) {
+    map.off('moveend zoomend', updateVisibleEventCount)
     map.remove()
     map = null
   }
