@@ -42,22 +42,22 @@
       <p>Check back later for new events or explore the map</p>
       <div class="empty-actions">
         <router-link to="/explore" class="btn btn-primary">
-          <i class="uil uil-calendar-alt"></i> Explore Events
+          Explore Events
         </router-link>
         <router-link to="/map" class="btn btn-secondary">
-          <i class="uil uil-map-marker"></i> View Map
+          View Map
         </router-link>
         <button @click="loadMoreEvents" class="btn btn-secondary" v-if="hasMoreEvents">
-          <i class="uil uil-redo"></i> Load More
+          Load More
         </button>
       </div>
     </div>
 
     <div class="action-buttons" v-if="!noEventsLeft && !eventStore.loading">
-      <button class="action-btn nope">
+      <button class="action-btn nope" @click="swipeCard('left')" :disabled="!canSwipe">
         <i class="uil uil-times"></i>
       </button>
-      <button class="action-btn like">
+      <button class="action-btn like" @click="swipeCard('right')" :disabled="!canSwipe">
         <i class="uil uil-heart"></i>
       </button>
     </div>
@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import Card from '@/components/card.vue'
 
@@ -206,6 +206,9 @@ const noEventsLeft = computed(() => {
 const remainingCount = computed(() => {
   return eventStore.events.length - currentEventIndex.value
 })
+const canSwipe = computed(() => {
+  return !noEventsLeft.value && !isDragging.value && !eventStore.loading && visibleEvents.value.length > 0
+})
 
 // Methods
 const handleSwipeComplete = async (direction, event) => {
@@ -289,9 +292,16 @@ const resetEvents = () => {
 
 // Lifecycle
 onMounted(async () => {
+  document.documentElement.style.overflow = 'hidden'
+  document.body.style.overflow = 'hidden'
   await store.dispatch('getCategories')
   await eventStore.fetchEvents()
   await favouritesStore.fetchFavourites()
+})
+
+onUnmounted(() => {
+  document.documentElement.style.overflow = ''
+  document.body.style.overflow = ''
 })
 
 // Watch for auth changes
@@ -472,17 +482,23 @@ h1 {
   transition: left 0.5s;
 }
 
-.action-btn:hover::before {
+.action-btn:hover:not(:disabled)::before {
   left: 100%;
 }
 
-.action-btn:hover {
+.action-btn:hover:not(:disabled) {
   transform: scale(1.1) translateY(-5px);
   box-shadow: 0 15px 35px rgba(0,0,0,0.3);
 }
 
 .action-btn:active {
   transform: scale(0.95);
+}
+
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .no-cards {
