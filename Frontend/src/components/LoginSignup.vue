@@ -15,6 +15,9 @@
                 <div class="card-front">
                   <div class="center-wrap">
                     <div class="section text-center">
+                      <div class="logo" aria-label="South of Somewhere">
+                        <span>SOS</span>
+                      </div>
                       <h4 class="mb-4 pb-3">Log In</h4>
                       <div class="form-group mt-2">
                         <input 
@@ -342,6 +345,29 @@ export default {
     transform: translate3d(0, -50%, 35px) perspective(100px);
     z-index: 20;
     display: block;
+}
+
+/* Match navbar logo style from App.vue */
+.logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 48px;
+    background: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    margin: 0 auto 20px;
+}
+
+.logo span {
+    background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
 }
 
 .form-group {

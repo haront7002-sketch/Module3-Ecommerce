@@ -71,17 +71,18 @@
 
           <div v-if="eventStore.filteredEvents.length === 0" class="empty-state">
             <i class="uil uil-map-marker-slash"></i>
-            <p>No events match your search</p>
+            <p>No events in your {{ maxTravelDistance }} km radius</p>
           </div>
         </div>
-
-        <!-- Load More -->
+        
+        <!-- Load More by Radius -->
         <div v-if="hasMoreEvents" class="load-more">
           <button @click="loadMoreEvents" class="load-more-btn" :disabled="eventStore.loading">
             <span v-if="eventStore.loading" class="loader-small"></span>
             <span v-else>Load More</span>
           </button>
         </div>
+
       </aside>
 
       <!-- Map -->
@@ -270,7 +271,6 @@ const filteredEvents = computed(() => {
   const visibleByLimit = eventsSortedByDistance.value.filter((ev) =>
     Number.isFinite(ev.distanceKm) && ev.distanceKm <= currentDistanceLimit.value
   )
-
   return visibleByLimit.map((ev) => ev.event)
 })
 
@@ -523,14 +523,13 @@ const handleSearch = () => {
   updateMarkers(filteredEvents.value)
 }
 
-const loadMoreEvents = async () => {
+const loadMoreEvents = () => {
   const fartherDistances = eventsSortedByDistance.value
     .map((ev) => ev.distanceKm)
     .filter((distance) => Number.isFinite(distance) && distance > currentDistanceLimit.value)
 
   if (fartherDistances.length === 0) return
 
-  // Expand the radius in travel-distance sized steps, revealing farther events in distance order.
   currentDistanceLimit.value += maxTravelDistance.value
   updateMarkers(filteredEvents.value)
 }

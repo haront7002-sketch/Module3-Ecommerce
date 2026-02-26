@@ -114,6 +114,12 @@
           <i class="uil uil-calendar-slash"></i>
           <h3>No events found</h3>
           <p>Try selecting a different date or adjusting your filters</p>
+          <div v-if="canLoadMoreFromEmpty" class="load-more">
+            <button @click="loadMoreEvents" class="load-more-btn" :disabled="eventStore.loading">
+              <span v-if="eventStore.loading" class="loader-small"></span>
+              <span v-else>Load More Events</span>
+            </button>
+          </div>
         </div>
 
         <div v-else class="events-list">
@@ -155,13 +161,6 @@
           </div>
         </div>
         
-        <!-- Load More Button -->
-        <div v-if="hasMoreEvents" class="load-more">
-          <button @click="loadMoreEvents" class="load-more-btn" :disabled="eventStore.loading">
-            <span v-if="eventStore.loading" class="loader-small"></span>
-            <span v-else>Load More Events</span>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -232,8 +231,6 @@ const store = useStore()
 const searchQuery = ref('')
 const showFilters = ref(false)
 const selectedEvent = ref(null)
-const page = ref(1)
-const hasMoreEvents = ref(true)
 const selectedCategories = ref([])
 const selectedDate = ref('')
 const currentDate = ref(new Date())
@@ -338,6 +335,33 @@ const filteredEvents = computed(() => {
     return String(aTime).localeCompare(String(bTime))
   })
 })
+
+const filteredEventsIgnoringDate = computed(() => {
+  let filtered = normalizedEvents.value
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter((event) =>
+      String(event.title || '').toLowerCase().includes(query) ||
+      String(event.area || '').toLowerCase().includes(query) ||
+      String(event.description || '').toLowerCase().includes(query) ||
+      String(event.category || '').toLowerCase().includes(query)
+    )
+  }
+
+  if (selectedCategories.value.length > 0) {
+    const selected = new Set(selectedCategories.value.map((category) => normalizeCategory(category)))
+    filtered = filtered.filter((event) => selected.has(normalizeCategory(event.category)))
+  }
+
+  return filtered
+})
+
+const canLoadMoreFromEmpty = computed(() =>
+  Boolean(selectedDate.value) &&
+  filteredEvents.value.length === 0 &&
+  filteredEventsIgnoringDate.value.length > 0
+)
 
 const eventsByDate = computed(() => {
   return normalizedEvents.value.reduce((acc, event) => {
@@ -610,15 +634,13 @@ const loadFavourites = async () => {
 }
 
 const loadMoreEvents = async () => {
-  const previousCount = normalizedEvents.value.length
-  page.value += 1
-  await loadEvents()
-  hasMoreEvents.value = normalizedEvents.value.length > previousCount
+  // "Load More" on Explore expands from today's default view to all events.
+  selectedDate.value = ''
 }
 
 onMounted(() => {
-  // Show all events by default; users can click a day to filter.
-  selectedDate.value = ''
+  // Default to today's events on initial load.
+  selectedDate.value = formatDateForComparison(new Date())
   selectedCategories.value = []
   searchQuery.value = ''
   store.dispatch('getCategories')
