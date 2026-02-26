@@ -141,6 +141,27 @@ export default createStore({
       ).json()
       commit('setMe', me)
     },
+    async updateUserProfile({ commit, state }, payload) {
+      const headers = { 'Content-Type': 'application/json' }
+      if (state.token) headers.Authorization = `Bearer ${state.token}`
+
+      const response = await fetch(`${API_BASE_URL}/user`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(payload)
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data?.message || 'Failed to update user profile')
+      }
+
+      if (data?.updatedUser) {
+        commit('setMe', { ...(state.me || {}), ...data.updatedUser })
+      }
+
+      return data
+    },
     async postRegister({ commit }, payload) {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',

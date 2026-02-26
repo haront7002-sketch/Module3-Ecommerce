@@ -85,16 +85,40 @@ const User = {
         return rows[0];
     },
 
-    // Update country and zip code
-    updateUser: async (user_id, { country, zip_code }) => {
+    // Update user location fields (supports different schema variants)
+    updateUser: async (user_id, { country, zip_code, area }) => {
+        const columns = await getUserColumns();
+        const updates = [];
+        const values = [];
+
+        if (columns.has('country') && country !== undefined) {
+            updates.push('country = ?');
+            values.push(country);
+        }
+
+        if (columns.has('zip_code') && zip_code !== undefined) {
+            updates.push('zip_code = ?');
+            values.push(zip_code);
+        }
+
+        if (columns.has('area') && area !== undefined) {
+            updates.push('area = ?');
+            values.push(area);
+        }
+
+        if (updates.length === 0) {
+            return User.findById(user_id);
+        }
+
+        values.push(user_id);
         await db.execute(
             `UPDATE users
-             SET country = ?, zip_code = ?
+             SET ${updates.join(', ')}
              WHERE user_id = ?`,
-            [country, zip_code, user_id]
+            values
         );
 
-        return { user_id, country, zip_code };
+        return User.findById(user_id);
     },
 
     // Update preferences payload

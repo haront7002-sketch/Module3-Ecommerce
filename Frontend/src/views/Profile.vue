@@ -65,7 +65,21 @@
               </div>
               <div class="info-item">
                 <span class="info-label">Location:</span>
-                <span class="info-value">{{ displayLocation }}</span>
+                <span v-if="!isEditing" class="info-value">{{ displayLocation }}</span>
+                <select
+                  v-else
+                  v-model="editForm.areaCode"
+                  class="info-edit-select"
+                >
+                  <option value="" disabled>Select Cape Town Area</option>
+                  <option
+                    v-for="area in capeTownAreas"
+                    :key="`profile-area-${area.code}-${area.area}`"
+                    :value="area.code"
+                  >
+                    {{ area.area }} ({{ area.code }})
+                  </option>
+                </select>
               </div>
             </div>
           </div>
@@ -216,6 +230,29 @@ const availableInterests = [
   { id: 15, name: 'Spirituality & Mindfulness', emoji: '🕊️' }
 ]
 
+const capeTownAreas = [
+  { code: '8001', area: 'Cape Town City Centre' },
+  { code: '8005', area: 'Sea Point' },
+  { code: '7700', area: 'Rondebosch' },
+  { code: '7708', area: 'Claremont' },
+  { code: '7800', area: 'Constantia' },
+  { code: '7945', area: 'Tokai' },
+  { code: '7806', area: 'Hout Bay' },
+  { code: '7441', area: 'Blouberg' },
+  { code: '7443', area: 'Parklands' },
+  { code: '7530', area: 'Bellville' },
+  { code: '7570', area: 'Durbanville' },
+  { code: '7640', area: 'Milnerton' },
+  { code: '7130', area: 'Somerset West' },
+  { code: '7140', area: 'Strand' },
+  { code: '7800', area: 'Kirstenhof' },
+  { code: '7945', area: 'Bergvliet' },
+  { code: '7800', area: 'Meadowridge' },
+  { code: '7708', area: 'Kenilworth' },
+  { code: '7945', area: 'Lakeside' },
+  { code: '7800', area: 'Muizenberg' }
+]
+
 // Distance options
 const distanceOptions = [
   { value: 10, label: 'Local (10km)' },
@@ -230,7 +267,8 @@ const editForm = reactive({
   name: '',
   username: '',
   gender: '',
-  location: ''
+  location: '',
+  areaCode: ''
 })
 
 // Load user data
@@ -252,6 +290,7 @@ const loadUserData = () => {
     editForm.username = parsed.username || parsed.email?.split('@')[0] || ''
     editForm.gender = parsed.gender || ''
     editForm.location = parsed.location || parsed.area || ''
+    editForm.areaCode = findAreaCodeByLocation(editForm.location) || parsed.zip_code || ''
   }
   
   if (preferences) {
@@ -264,6 +303,7 @@ const loadUserData = () => {
 }
 
 const startEditing = () => {
+  editForm.areaCode = findAreaCodeByLocation(editForm.location) || editForm.areaCode || ''
   isEditing.value = true
 }
 
@@ -271,6 +311,11 @@ const saveProfile = async () => {
   // Determine final distance value
   const finalDistance = userDistance.value === 'custom' ? customDistanceValue.value : userDistance.value
   
+  const selectedArea = capeTownAreas.find((area) => area.code === editForm.areaCode)
+  const resolvedLocation = selectedArea
+    ? `${selectedArea.area} (${selectedArea.code})`
+    : (editForm.location || user.value?.location || user.value?.area || '')
+
   // Update user data
   const computedAge = calculateAge(user.value?.birthDate)
   const updatedUser = {
@@ -279,7 +324,8 @@ const saveProfile = async () => {
     username: editForm.username,
     age: computedAge ?? user.value?.age ?? null,
     gender: editForm.gender,
-    location: editForm.location,
+    location: resolvedLocation,
+    zip_code: selectedArea?.code || user.value?.zip_code || '',
     interests: userInterests.value,
     maxDistance: finalDistance,
     profileComplete: true
@@ -300,6 +346,10 @@ const saveProfile = async () => {
   const userId = Number(updatedUser.user_id ?? updatedUser.id)
   if (Number.isInteger(userId) && userId > 0) {
     try {
+      await store.dispatch('updateUserProfile', {
+        area: resolvedLocation,
+        zip_code: selectedArea?.code || user.value?.zip_code || ''
+      })
       await store.dispatch('savePreferences', {
         user_id: userId,
         interests: Array.isArray(userInterests.value) ? userInterests.value : []
@@ -342,6 +392,19 @@ const toggleDistanceUnit = () => {
     customDistanceValue.value = Math.round(customDistanceValue.value * 1.60934)
     distanceUnit.value = 'km'
   }
+}
+
+const findAreaCodeByLocation = (locationValue) => {
+  const location = String(locationValue || '').toLowerCase().trim()
+  if (!location) return ''
+
+  const codeMatch = location.match(/\((\d{4})\)/)
+  if (codeMatch?.[1]) return codeMatch[1]
+
+  const matched = capeTownAreas.find((area) =>
+    location.includes(String(area.area).toLowerCase())
+  )
+  return matched?.code || ''
 }
 </script>
 
@@ -547,6 +610,34 @@ const toggleDistanceUnit = () => {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+.info-edit-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: #000000;
+  background: #fff;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: all 300ms ease;
+}
+
+.info-edit-select:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.2);
+}
+
+.info-edit-select option {
+  background: #ffffff;
+  color: #000000;
 }
 
 /* Interests Tab */

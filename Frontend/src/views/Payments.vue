@@ -74,7 +74,7 @@
               <span>R {{ subtotal }}</span>
             </div>
             <div class="total-line">
-              <span>Service Fee</span>
+              <span>Service Fee (5%)</span>
               <span>R {{ fee }}</span>
             </div>
             <div class="total-line final">
@@ -215,11 +215,12 @@
 
 <script setup>
 import { computed, reactive, ref, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import QRCode from "qrcode";
 
 const route = useRoute();
+const router = useRouter();
 const store = useStore();
 const EMPTY_ORDER = {
   eventId: "",
@@ -400,7 +401,16 @@ async function clearCartForUser({ showErrors = true } = {}) {
   }
 
   try {
-    await store.dispatch("deleteUserCart", { userId });
+    const response = await store.dispatch("deleteUserCart", { userId });
+    if (response?.message !== "User cart cleared successfully") {
+      if (showErrors) showBanner(response?.message || "Failed to clear cart.", "error");
+      return false;
+    }
+    await loadCart();
+    if (cartItems.value.length > 0) {
+      if (showErrors) showBanner("Failed to clear cart.", "error");
+      return false;
+    }
     return true;
   } catch (err) {
     console.error(err);
@@ -413,7 +423,10 @@ async function clearCart() {
   clearingCart.value = true;
   try {
     const cleared = await clearCartForUser({ showErrors: true });
-    if (cleared) clearOrderSummary();
+    if (cleared) {
+      clearOrderSummary();
+      await router.replace({ name: "payments", query: {} });
+    }
   } finally {
     clearingCart.value = false;
   }
@@ -535,12 +548,29 @@ async function pay() {
   processing.value = true;
 
   try {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      showBanner("No user found for checkout.", "error");
+      status.value = "failed";
+      return;
+    }
+
     await new Promise((r) => setTimeout(r, 1500));
-    reference.value = makeRef();
+    const checkoutResult = await store.dispatch("postCheckout", {
+      user_id: userId,
+      payment_method: method.value,
+      status: "successful"
+    });
+
+    if (!checkoutResult?.order_id) {
+      throw new Error(checkoutResult?.message || "Checkout failed");
+    }
+
+    reference.value = `ORD-${checkoutResult.order_id}-${makeRef()}`;
     await createTicketWithQr();
-    await clearCartForUser({ showErrors: false });
+    await loadCart();
     status.value = "success";
-    showBanner("Payment completed successfully!", "success");
+    showBanner(`Payment completed successfully! Order #${checkoutResult.order_id}`, "success");
   } catch (err) {
     console.error(err);
     status.value = "failed";
@@ -551,16 +581,18 @@ async function pay() {
 }
 
 onMounted(async () => {
-  if (!hasRouteEvent) {
-    clearOrderSummary();
-    return;
-  }
   try {
-    await addRouteEventToCartIfPresent();
+    if (hasRouteEvent) {
+      await addRouteEventToCartIfPresent();
+    }
   } catch (err) {
     console.error(err);
   }
   await loadCart();
+
+  if (!hasRouteEvent && cartItems.value.length === 0) {
+    clearOrderSummary();
+  }
 });
 </script>
 

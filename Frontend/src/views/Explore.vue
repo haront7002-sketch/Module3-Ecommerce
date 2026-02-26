@@ -363,18 +363,6 @@ const eventsThisMonth = computed(() => {
 
 const currentYear = computed(() => currentDate.value.getFullYear())
 const currentMonthName = computed(() => currentDate.value.toLocaleString('default', { month: 'long' }))
-const userLocation = computed(() => {
-  const user = store.state.me || {}
-  const location = user.location
-  if (typeof location === 'string' && location.trim()) return location
-  if (location && typeof location === 'object') {
-    if (typeof location.area === 'string' && location.area.trim()) return location.area
-    if (typeof location.address === 'string' && location.address.trim()) return location.address
-  }
-  if (typeof user.area === 'string' && user.area.trim()) return user.area
-  return 'Cape Town'
-})
-
 const selectedDateLabel = computed(() => {
   if (!selectedDate.value) return 'All Events'
   const options = { weekday: 'long', month: 'long', day: 'numeric' }

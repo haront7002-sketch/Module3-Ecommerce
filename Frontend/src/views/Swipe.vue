@@ -71,6 +71,74 @@ import Card from '@/components/card.vue'
 
 const store = useStore()
 const loading = ref(false)
+const CAPE_TOWN_CENTER = { lat: -33.9249, lng: 18.4241 }
+const AREA_COORDINATES = {
+  'city centre': { lat: -33.9249, lng: 18.4241 },
+  'cape town': { lat: -33.9249, lng: 18.4241 },
+  'sea point': { lat: -33.9075, lng: 18.3897 },
+  'woodstock': { lat: -33.9279, lng: 18.4448 },
+  'observatory': { lat: -33.9367, lng: 18.4642 },
+  'green point': { lat: -33.9029, lng: 18.4106 },
+  'claremont': { lat: -33.9806, lng: 18.4652 },
+  'rondebosch': { lat: -33.9608, lng: 18.4676 },
+  'bellville': { lat: -33.9006, lng: 18.6292 },
+  'durbanville': { lat: -33.8322, lng: 18.6491 },
+  'hout bay': { lat: -34.0431, lng: 18.3486 },
+  'table mountain': { lat: -33.9628, lng: 18.4098 },
+  'kloof street': { lat: -33.9284, lng: 18.4126 },
+  'bree street': { lat: -33.9238, lng: 18.4177 },
+  'clifton': { lat: -33.9419, lng: 18.3723 },
+  'muizenberg': { lat: -34.1080, lng: 18.4699 },
+  'waterfront': { lat: -33.9070, lng: 18.4208 },
+  'newlands': { lat: -33.9740, lng: 18.4472 },
+  'signal hill': { lat: -33.9180, lng: 18.3958 }
+}
+
+const normalizeLocation = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9&\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const findAreaCoordinates = (value) => {
+  const normalized = normalizeLocation(value)
+  if (!normalized) return null
+  const key = Object.keys(AREA_COORDINATES).find((k) => normalized.includes(k))
+  return key ? AREA_COORDINATES[key] : null
+}
+
+const toRadians = (deg) => (deg * Math.PI) / 180
+
+const distanceKm = (from, to) => {
+  const r = 6371
+  const dLat = toRadians(to.lat - from.lat)
+  const dLng = toRadians(to.lng - from.lng)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * r * Math.asin(Math.sqrt(a))
+}
+
+const userCoordinates = computed(() => {
+  const me = store.state.me || JSON.parse(localStorage.getItem('user') || 'null') || {}
+  const rawLat = Number(me?.location?.coordinates?.lat ?? me?.lat)
+  const rawLng = Number(me?.location?.coordinates?.lng ?? me?.lng)
+  if (Number.isFinite(rawLat) && Number.isFinite(rawLng)) return { lat: rawLat, lng: rawLng }
+
+  const byArea = findAreaCoordinates(me?.location?.area ?? me?.location ?? me?.area)
+  return byArea || CAPE_TOWN_CENTER
+})
+
+const formatDistance = (eventArea, eventLocation) => {
+  const eventCoords = findAreaCoordinates(eventLocation) || findAreaCoordinates(eventArea)
+  if (!eventCoords) return 'Distance unavailable'
+  const km = distanceKm(userCoordinates.value, eventCoords)
+  if (!Number.isFinite(km)) return 'Distance unavailable'
+  if (km < 10) return `${km.toFixed(1)} km away`
+  return `${Math.round(km)} km away`
+}
+
 const categoryNameById = computed(() => {
   const categories = store.state.categories || []
   return categories.reduce((acc, category) => {
@@ -99,7 +167,8 @@ const events = computed(() =>
       price: Number(event.price ?? 0),
       image_url: event.image_url ?? event.image ?? '',
       emoji: event.emoji ?? '🎉',
-      startDate
+      startDate,
+      distance: formatDistance(area, event.location?.address ?? event.location)
     }
   })
 )

@@ -132,12 +132,12 @@ const getUserProfile = async (req, res) => {
     }
 };
 
-//  UPDATE USER COUNTRY / ZIP 
+//  UPDATE USER LOCATION FIELDS
 const updateUser = async (req, res) => {
     try {
-        const { country, zip_code } = req.body;
+        const { country, zip_code, area } = req.body;
 
-        const updatedUser = await User.updateUser(req.user.user_id, { country, zip_code });
+        const updatedUser = await User.updateUser(req.user.user_id, { country, zip_code, area });
 
         res.json({ message: "User updated", updatedUser });
     } catch (error) {

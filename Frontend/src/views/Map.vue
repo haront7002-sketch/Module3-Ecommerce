@@ -58,6 +58,9 @@
                   <span class="event-price">R {{ ev.price }}</span>
                 </div>
                 <div class="event-area">{{ ev.location?.area || ev.area }}</div>
+                <div class="event-distance">
+                  <i class="uil uil-map-marker-distance"></i> {{ formatDistanceFromUser(ev) }}
+                </div>
               </div>
             </div>
             <div class="event-desc">{{ ev.description }}</div>
@@ -104,11 +107,10 @@ let map = null
 const markerById = new Map()
 const query = ref('')
 const loading = ref(false)
-const page = ref(1)
-const hasMoreEvents = ref(true)
 const fallbackEvents = ref([])
 const visibleEventCount = ref(0)
 const CAPE_TOWN_CENTER = { lat: -33.9249, lng: 18.4241 }
+const currentDistanceLimit = ref(50)
 
 const defaultMapEvents = [
   {
@@ -153,15 +155,45 @@ const AREA_COORDINATES = {
   'city centre': { lat: -33.9249, lng: 18.4241 },
   'cape town': { lat: -33.9249, lng: 18.4241 },
   'sea point': { lat: -33.9075, lng: 18.3897 },
+  'blouberg': { lat: -33.8056, lng: 18.4694 },
+  'parklands': { lat: -33.8278, lng: 18.5067 },
   'woodstock': { lat: -33.9279, lng: 18.4448 },
   'observatory': { lat: -33.9367, lng: 18.4642 },
   'green point': { lat: -33.9029, lng: 18.4106 },
   'claremont': { lat: -33.9806, lng: 18.4652 },
+  'kenilworth': { lat: -33.9892, lng: 18.4916 },
   'rondebosch': { lat: -33.9608, lng: 18.4676 },
   'bellville': { lat: -33.9006, lng: 18.6292 },
   'durbanville': { lat: -33.8322, lng: 18.6491 },
+  'milnerton': { lat: -33.8794, lng: 18.4951 },
+  'somerset west': { lat: -34.0790, lng: 18.8433 },
+  'strand': { lat: -34.1075, lng: 18.8271 },
+  'constantia': { lat: -34.0314, lng: 18.4183 },
+  'tokai': { lat: -34.0647, lng: 18.4414 },
+  'kirstenhof': { lat: -34.0453, lng: 18.4319 },
+  'bergvliet': { lat: -34.0470, lng: 18.4527 },
+  'meadowridge': { lat: -34.0508, lng: 18.4521 },
+  'lakeside': { lat: -34.0825, lng: 18.4354 },
+  'muizenberg': { lat: -34.1076, lng: 18.4685 },
   'hout bay': { lat: -34.0431, lng: 18.3486 },
   'table mountain': { lat: -33.9628, lng: 18.4098 }
+}
+
+const ZIP_COORDINATES = {
+  '8001': AREA_COORDINATES['city centre'],
+  '8005': AREA_COORDINATES['sea point'],
+  '7700': AREA_COORDINATES['rondebosch'],
+  '7708': AREA_COORDINATES['claremont'],
+  '7800': AREA_COORDINATES['constantia'],
+  '7945': AREA_COORDINATES['tokai'],
+  '7806': AREA_COORDINATES['hout bay'],
+  '7441': AREA_COORDINATES['blouberg'],
+  '7443': AREA_COORDINATES['parklands'],
+  '7530': AREA_COORDINATES['bellville'],
+  '7570': AREA_COORDINATES['durbanville'],
+  '7640': AREA_COORDINATES['milnerton'],
+  '7130': AREA_COORDINATES['somerset west'],
+  '7140': AREA_COORDINATES['strand']
 }
 
 const EVENT_LOCATION_COORDINATES = {
@@ -235,15 +267,51 @@ const normalizedEvents = computed(() => {
 })
 
 const filteredEvents = computed(() => {
-  const q = query.value.toLowerCase().trim()
-  if (!q) return normalizedEvents.value
-
-  return normalizedEvents.value.filter((e) =>
-    String(e.title || '').toLowerCase().includes(q) ||
-    String(e.area || '').toLowerCase().includes(q) ||
-    String(e.description || '').toLowerCase().includes(q) ||
-    String(e.category || '').toLowerCase().includes(q)
+  const visibleByLimit = eventsSortedByDistance.value.filter((ev) =>
+    Number.isFinite(ev.distanceKm) && ev.distanceKm <= currentDistanceLimit.value
   )
+
+  return visibleByLimit.map((ev) => ev.event)
+})
+
+const hasMoreEvents = computed(() =>
+  eventsSortedByDistance.value.some((ev) =>
+    Number.isFinite(ev.distanceKm) && ev.distanceKm > currentDistanceLimit.value
+  )
+)
+
+const eventsSortedByDistance = computed(() => {
+  const q = query.value.toLowerCase().trim()
+  const baseEvents = !q
+    ? normalizedEvents.value
+    : normalizedEvents.value.filter((e) =>
+      String(e.title || '').toLowerCase().includes(q) ||
+      String(e.area || '').toLowerCase().includes(q) ||
+      String(e.description || '').toLowerCase().includes(q) ||
+      String(e.category || '').toLowerCase().includes(q)
+    )
+
+  return baseEvents
+    .map((event) => {
+      if (!Number.isFinite(event?.lat) || !Number.isFinite(event?.lng)) {
+        return { event, distanceKm: Number.POSITIVE_INFINITY }
+      }
+      return {
+        event,
+        distanceKm: distanceKm(userLatLng.value, { lat: event.lat, lng: event.lng })
+      }
+    })
+    .sort((a, b) => {
+      if (!Number.isFinite(a.distanceKm) && !Number.isFinite(b.distanceKm)) {
+        return String(a.event?.title || '').localeCompare(String(b.event?.title || ''))
+      }
+      if (!Number.isFinite(a.distanceKm)) return 1
+      if (!Number.isFinite(b.distanceKm)) return -1
+      if (a.distanceKm === b.distanceKm) {
+        return String(a.event?.title || '').localeCompare(String(b.event?.title || ''))
+      }
+      return a.distanceKm - b.distanceKm
+    })
 })
 
 const eventStore = {
@@ -281,13 +349,44 @@ const userLocation = computed(() => {
 })
 
 const userLatLng = computed(() => {
-  const lat = Number(store.state.me?.location?.coordinates?.lat ?? store.state.me?.lat)
-  const lng = Number(store.state.me?.location?.coordinates?.lng ?? store.state.me?.lng)
-  return {
-    lat: Number.isFinite(lat) ? lat : CAPE_TOWN_CENTER.lat,
-    lng: Number.isFinite(lng) ? lng : CAPE_TOWN_CENTER.lng
+  const me = store.state.me || {}
+  const lat = Number(me?.location?.coordinates?.lat ?? me?.lat)
+  const lng = Number(me?.location?.coordinates?.lng ?? me?.lng)
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng }
   }
+
+  const locationText = normalizeLocation(me?.location?.area ?? me?.location ?? me?.area)
+  const areaKey = Object.keys(AREA_COORDINATES).find((key) => locationText.includes(key))
+  if (areaKey) return AREA_COORDINATES[areaKey]
+
+  const zip = String(me?.zip_code ?? '').trim()
+  if (ZIP_COORDINATES[zip]) return ZIP_COORDINATES[zip]
+
+  return CAPE_TOWN_CENTER
 })
+
+const maxTravelDistance = computed(() => {
+  const fromMe = Number(store.state.me?.maxDistance)
+  if (Number.isFinite(fromMe) && fromMe > 0) return fromMe
+
+  try {
+    const preferences = JSON.parse(localStorage.getItem('preferences') || '{}')
+    const fromPreferences = Number(preferences?.maxDistance)
+    if (Number.isFinite(fromPreferences) && fromPreferences > 0) return fromPreferences
+  } catch {}
+
+  return 50
+})
+
+const zoomForDistanceKm = (km) => {
+  if (km <= 5) return 13
+  if (km <= 10) return 12
+  if (km <= 25) return 11
+  if (km <= 50) return 10
+  if (km <= 100) return 9
+  return 8
+}
 
 const formatDate = (dateValue) => {
   if (!dateValue) return ''
@@ -297,6 +396,26 @@ const formatDate = (dateValue) => {
     month: 'short',
     day: 'numeric'
   })
+}
+
+const toRadians = (deg) => (deg * Math.PI) / 180
+
+const distanceKm = (from, to) => {
+  const r = 6371
+  const dLat = toRadians(to.lat - from.lat)
+  const dLng = toRadians(to.lng - from.lng)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * r * Math.asin(Math.sqrt(a))
+}
+
+const formatDistanceFromUser = (ev) => {
+  if (!Number.isFinite(ev?.lat) || !Number.isFinite(ev?.lng)) return 'Distance unavailable'
+  const km = distanceKm(userLatLng.value, { lat: ev.lat, lng: ev.lng })
+  if (!Number.isFinite(km)) return 'Distance unavailable'
+  if (km < 10) return `${km.toFixed(1)} km away`
+  return `${Math.round(km)} km away`
 }
 
 const isFreeEvent = (ev) => Number(ev?.price ?? 0) === 0
@@ -377,10 +496,11 @@ const updateMarkers = (eventsToPlot) => {
     wirePopupButtons(ev)
   })
 
-  if (validEvents.length > 0) {
-    const group = L.featureGroup(validEvents.map((ev) => L.marker([ev.lat, ev.lng])))
-    map.fitBounds(group.getBounds(), { padding: [50, 50] })
-  }
+  map.setView(
+    [userLatLng.value.lat, userLatLng.value.lng],
+    zoomForDistanceKm(currentDistanceLimit.value),
+    { animate: true }
+  )
 
   updateVisibleEventCount()
 }
@@ -404,10 +524,15 @@ const handleSearch = () => {
 }
 
 const loadMoreEvents = async () => {
-  const previousCount = normalizedEvents.value.length
-  page.value += 1
-  await eventStore.fetchEvents()
-  hasMoreEvents.value = normalizedEvents.value.length > previousCount
+  const fartherDistances = eventsSortedByDistance.value
+    .map((ev) => ev.distanceKm)
+    .filter((distance) => Number.isFinite(distance) && distance > currentDistanceLimit.value)
+
+  if (fartherDistances.length === 0) return
+
+  // Expand the radius in travel-distance sized steps, revealing farther events in distance order.
+  currentDistanceLimit.value += maxTravelDistance.value
+  updateMarkers(filteredEvents.value)
 }
 
 watch(filteredEvents, (newEvents) => {
@@ -415,7 +540,11 @@ watch(filteredEvents, (newEvents) => {
 }, { deep: true })
 
 onMounted(async () => {
-  map = L.map(mapEl.value, { zoomControl: true }).setView([userLatLng.value.lat, userLatLng.value.lng], 12)
+  currentDistanceLimit.value = maxTravelDistance.value
+  map = L.map(mapEl.value, { zoomControl: true }).setView(
+    [userLatLng.value.lat, userLatLng.value.lng],
+    zoomForDistanceKm(currentDistanceLimit.value)
+  )
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
@@ -426,6 +555,12 @@ onMounted(async () => {
   map.on('moveend zoomend', updateVisibleEventCount)
   updateVisibleEventCount()
 })
+
+watch([maxTravelDistance, userLatLng], () => {
+  if (!map) return
+  currentDistanceLimit.value = maxTravelDistance.value
+  updateMarkers(filteredEvents.value)
+}, { deep: true })
 
 onBeforeUnmount(() => {
   markerById.forEach((marker) => {
@@ -684,6 +819,15 @@ h1 {
 .event-area {
   font-size: 12px;
   color: rgba(255,255,255,0.7);
+}
+
+.event-distance {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .event-desc {

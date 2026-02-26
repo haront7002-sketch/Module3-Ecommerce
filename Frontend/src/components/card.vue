@@ -15,6 +15,7 @@
       <div class="card-title">{{ eventData.event_title || eventData.title }}</div>
       <div class="card-description">{{ eventData.description }}</div>
       <div class="card-category">{{ eventData.category || eventData.category_name }}</div>
+      <div class="card-distance">{{ eventData.distance || 'Distance unavailable' }}</div>
     </div>
     <div class="swipe-indicator like-indicator" :style="{ opacity: likeOpacity }">LIKE</div>
     <div class="swipe-indicator nope-indicator" :style="{ opacity: nopeOpacity }">NOPE</div>
@@ -272,6 +273,16 @@ const cleanup = () => {
   align-self: center;
   font-weight: 600;
   margin-bottom: 16px;
+}
+
+.card-distance {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 12px;
+  border-radius: 16px;
+  align-self: center;
+  margin-bottom: 18px;
 }
 
 
