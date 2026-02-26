@@ -88,7 +88,7 @@ const postOrderItemsCon = async (req, res) => {
 const getOrderCon = async (req, res) => {
     try {
         const { order_id } = req.params;
-        const order = await getOrderByIdDb(order_id);
+        const order = await getOrderDb(order_id);
 
         if (!order) {
             return res.status(404).json({
