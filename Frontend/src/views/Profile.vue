@@ -3,7 +3,6 @@
     <div class="profile-card">
       <!-- Header with profile info -->
       <div class="profile-header">
-        <!-- Profile Info -->
         <div class="profile-info">
           <div v-if="!isEditing" class="display-mode">
             <h1>{{ displayName }}</h1>
@@ -14,6 +13,13 @@
             <input type="text" v-model="editForm.name" class="edit-input" placeholder="Your Name">
             <input type="text" v-model="editForm.username" class="edit-input" placeholder="Username">
           </div>
+        </div>
+
+        <!-- Ticket Indicator -->
+        <div v-if="userTickets.length > 0" class="ticket-indicator" @click="activeTab = 'tickets'">
+          <i class="uil uil-ticket"></i>
+          <span class="indicator-count">{{ userTickets.length }}</span>
+          <span class="indicator-text">Tickets in Profile</span>
         </div>
       </div>
 
@@ -45,6 +51,14 @@
           @click="activeTab = 'interests'"
         >
           <i class="uil uil-heart"></i> Interests
+        </button>
+        <button 
+          class="tab-btn" 
+          :class="{ active: activeTab === 'tickets' }" 
+          @click="activeTab = 'tickets'"
+        >
+          <i class="uil uil-ticket"></i> My Tickets
+          <span v-if="userTickets.length" class="tab-badge">{{ userTickets.length }}</span>
         </button>
       </div>
 
@@ -157,6 +171,141 @@
             </div>
           </div>
         </div>
+
+        <!-- My Tickets Tab -->
+        <div v-if="activeTab === 'tickets'" class="tickets-tab">
+          <div class="tickets-header">
+            <h3><i class="uil uil-ticket"></i> My Tickets</h3>
+            <span class="tickets-count">{{ userTickets.length }} {{ userTickets.length === 1 ? 'Ticket' : 'Tickets' }}</span>
+          </div>
+
+          <div v-if="userTickets.length === 0" class="no-tickets">
+            <div class="no-tickets-icon">
+              <i class="uil uil-ticket"></i>
+            </div>
+            <h4>No Tickets Yet</h4>
+            <p>Browse events and purchase tickets to see them here</p>
+            <router-link to="/map" class="browse-btn">
+              <i class="uil uil-map-marker"></i> Browse Events
+            </router-link>
+          </div>
+
+          <div v-else class="tickets-grid">
+            <div v-for="ticket in userTickets" :key="ticket.id" class="ticket-card">
+              <div class="ticket-card-header">
+                <div class="ticket-type-badge">{{ ticket.status }}</div>
+                <span class="ticket-card-ref">#{{ ticket.reference }}</span>
+              </div>
+              
+              <div class="ticket-card-body">
+                <h4>{{ ticket.title }}</h4>
+                
+                <div class="ticket-info-grid">
+                  <div class="ticket-info-item">
+                    <i class="uil uil-calendar-alt"></i>
+                    <span>{{ formatDate(ticket.date) }}</span>
+                  </div>
+                  <div class="ticket-info-item">
+                    <i class="uil uil-user"></i>
+                    <span>{{ ticket.customerName }}</span>
+                  </div>
+                  <div class="ticket-info-item">
+                    <i class="uil uil-ticket"></i>
+                    <span>{{ ticket.quantity }} ticket(s)</span>
+                  </div>
+                  <div class="ticket-info-item price">
+                    <i class="uil uil-money-bill"></i>
+                    <span>R{{ ticket.total }}</span>
+                  </div>
+                </div>
+
+                <!-- View and Download Buttons -->
+                <div class="ticket-actions">
+                  <button class="view-ticket-btn" @click="viewTicket(ticket)">
+                    <i class="uil uil-eye"></i> View
+                  </button>
+                  <button class="download-ticket-btn" @click="downloadTicket(ticket)">
+                    <i class="uil uil-download-alt"></i> Download
+                  </button>
+                </div>
+              </div>
+
+              <div class="ticket-card-footer">
+                <span class="purchase-date">Purchased: {{ formatDate(ticket.purchasedAt) }}</span>
+                <span class="ticket-price-small">R{{ ticket.total }}</span>
+              </div>
+
+              <!-- QR Preview -->
+              <div v-if="ticket.qrCode" class="qr-preview" @click="viewTicket(ticket)">
+                <img :src="ticket.qrCode" alt="QR">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticket Detail Modal -->
+    <div v-if="selectedTicket" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <button class="modal-close" @click="closeModal">×</button>
+        
+        <div class="modal-ticket">
+          <div class="modal-ticket-header">
+            <div class="modal-ticket-brand">
+              <div class="modal-ticket-icon">🎟️</div>
+              <div>
+                <h2>{{ selectedTicket.title }}</h2>
+                <p class="modal-ticket-ref">Reference: {{ selectedTicket.reference }}</p>
+              </div>
+            </div>
+            <div class="modal-ticket-status">{{ selectedTicket.status }}</div>
+          </div>
+
+          <div class="modal-ticket-divider"></div>
+
+          <div class="modal-ticket-body">
+            <div class="modal-ticket-info">
+              <div class="modal-info-row">
+                <span class="modal-info-label">Event Date</span>
+                <span class="modal-info-value">{{ selectedTicket.date }}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Attendee</span>
+                <span class="modal-info-value">{{ selectedTicket.customerName }}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Email</span>
+                <span class="modal-info-value">{{ selectedTicket.customerEmail }}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Quantity</span>
+                <span class="modal-info-value">{{ selectedTicket.quantity }} ticket(s)</span>
+              </div>
+              <div class="modal-info-row total">
+                <span class="modal-info-label">Total Paid</span>
+                <span class="modal-info-value">R{{ selectedTicket.total }}</span>
+              </div>
+              <div class="modal-info-row">
+                <span class="modal-info-label">Purchase Date</span>
+                <span class="modal-info-value">{{ formatDate(selectedTicket.purchasedAt) }}</span>
+              </div>
+            </div>
+
+            <div class="modal-ticket-qr">
+              <div class="modal-qr-container">
+                <img v-if="selectedTicket.qrCode" :src="selectedTicket.qrCode" alt="QR Code" class="modal-qr-code">
+                <p class="modal-qr-text">Show this QR at the event entrance</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-ticket-footer">
+            <button class="modal-download-btn" @click="downloadTicket(selectedTicket)">
+              <i class="uil uil-download-alt"></i> Download Ticket
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -173,6 +322,10 @@ const isEditing = ref(false)
 const activeTab = ref('about')
 const distanceUnit = ref('km')
 const customDistanceValue = ref(50)
+
+// Ticket refs
+const userTickets = ref([])
+const selectedTicket = ref(null)
 
 // User data
 const user = ref({})
@@ -271,13 +424,28 @@ const editForm = reactive({
   areaCode: ''
 })
 
+// Format date helper
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-ZA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch {
+    return dateString
+  }
+}
+
 // Load user data
 onMounted(() => {
   loadUserData()
+  loadUserTickets()
 })
 
 const loadUserData = () => {
-  // Get user data from localStorage
   const userData = localStorage.getItem('user')
   const preferences = localStorage.getItem('preferences')
   
@@ -285,7 +453,6 @@ const loadUserData = () => {
     const parsed = JSON.parse(userData)
     user.value = parsed
     
-    // Set edit form values
     editForm.name = parsed.name || `${parsed.user_name || ''} ${parsed.user_surname || ''}`.trim()
     editForm.username = parsed.username || parsed.email?.split('@')[0] || ''
     editForm.gender = parsed.gender || ''
@@ -302,13 +469,22 @@ const loadUserData = () => {
   }
 }
 
+const loadUserTickets = () => {
+  const userData = JSON.parse(localStorage.getItem('user') || '{}')
+  userTickets.value = userData.tickets || []
+  
+  if (userTickets.value.length === 0) {
+    const savedTickets = JSON.parse(localStorage.getItem('userTickets') || '[]')
+    userTickets.value = savedTickets
+  }
+}
+
 const startEditing = () => {
   editForm.areaCode = findAreaCodeByLocation(editForm.location) || editForm.areaCode || ''
   isEditing.value = true
 }
 
 const saveProfile = async () => {
-  // Determine final distance value
   const finalDistance = userDistance.value === 'custom' ? customDistanceValue.value : userDistance.value
   
   const selectedArea = capeTownAreas.find((area) => area.code === editForm.areaCode)
@@ -316,7 +492,6 @@ const saveProfile = async () => {
     ? `${selectedArea.area} (${selectedArea.code})`
     : (editForm.location || user.value?.location || user.value?.area || '')
 
-  // Update user data
   const computedAge = calculateAge(user.value?.birthDate)
   const updatedUser = {
     ...user.value,
@@ -328,13 +503,12 @@ const saveProfile = async () => {
     zip_code: selectedArea?.code || user.value?.zip_code || '',
     interests: userInterests.value,
     maxDistance: finalDistance,
-    profileComplete: true
+    profileComplete: true,
+    tickets: userTickets.value
   }
   
-  // Save to localStorage
   localStorage.setItem('user', JSON.stringify(updatedUser))
   
-  // Also update preferences
   const preferences = JSON.parse(localStorage.getItem('preferences') || '{}')
   const updatedPrefs = {
     ...preferences,
@@ -367,7 +541,7 @@ const saveProfile = async () => {
 }
 
 const cancelEditing = () => {
-  loadUserData() // Reload original data
+  loadUserData()
   isEditing.value = false
 }
 
@@ -406,6 +580,24 @@ const findAreaCodeByLocation = (locationValue) => {
   )
   return matched?.code || ''
 }
+
+// Ticket functions
+const viewTicket = (ticket) => {
+  selectedTicket.value = ticket
+}
+
+const closeModal = () => {
+  selectedTicket.value = null
+}
+
+const downloadTicket = (ticket) => {
+  if (ticket.qrCode) {
+    const link = document.createElement('a')
+    link.href = ticket.qrCode
+    link.download = `${ticket.reference}.png`
+    link.click()
+  }
+}
 </script>
 
 <style scoped>
@@ -419,7 +611,7 @@ const findAreaCodeByLocation = (locationValue) => {
 }
 
 .profile-card {
-  max-width: 800px;
+  max-width: 900px;
   width: 100%;
   background: white;
   border-radius: 30px;
@@ -442,6 +634,11 @@ const findAreaCodeByLocation = (locationValue) => {
 .profile-header {
   padding: 40px 40px 20px 40px;
   background: linear-gradient(135deg, #EEAECA 0%, #ffc9e0 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .profile-info {
@@ -481,6 +678,63 @@ const findAreaCodeByLocation = (locationValue) => {
 .edit-input:focus {
   outline: none;
   border-color: white;
+}
+
+/* Ticket Indicator */
+.ticket-indicator {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: pulse 2s infinite;
+}
+
+.ticket-indicator:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.05);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.ticket-indicator i {
+  font-size: 24px;
+  color: white;
+}
+
+.indicator-count {
+  background: #c01a62;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+.indicator-text {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .action-buttons {
@@ -538,6 +792,7 @@ const findAreaCodeByLocation = (locationValue) => {
   border-bottom: 1px solid #f0f0f0;
   padding: 0 30px;
   background: white;
+  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -566,6 +821,15 @@ const findAreaCodeByLocation = (locationValue) => {
 .tab-btn.active {
   color: #4caf50;
   border-bottom-color: #4caf50;
+}
+
+.tab-badge {
+  background: #c01a62;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 20px;
+  margin-left: 5px;
 }
 
 .tab-content {
@@ -635,11 +899,6 @@ const findAreaCodeByLocation = (locationValue) => {
   box-shadow: 0 8px 25px rgba(76, 175, 80, 0.2);
 }
 
-.info-edit-select option {
-  background: #ffffff;
-  color: #000000;
-}
-
 /* Interests Tab */
 .interests-tab {
   display: flex;
@@ -667,7 +926,6 @@ const findAreaCodeByLocation = (locationValue) => {
   margin-bottom: 20px;
 }
 
-/* Interests Grid - Updated for new categories */
 .interests-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -699,13 +957,11 @@ const findAreaCodeByLocation = (locationValue) => {
 .interest-name {
   font-weight: 600;
   text-align: center;
-  line-height: 1.3;
 }
 
 .interest-btn:hover {
   border-color: #EEAECA;
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(238, 174, 202, 0.2);
 }
 
 .interest-btn.selected {
@@ -714,7 +970,6 @@ const findAreaCodeByLocation = (locationValue) => {
   border-color: #EEAECA;
 }
 
-/* Interests Cloud (View Mode) - Updated for new categories */
 .interests-cloud {
   display: flex;
   flex-wrap: wrap;
@@ -729,28 +984,7 @@ const findAreaCodeByLocation = (locationValue) => {
   border-radius: 30px;
   font-size: 14px;
   font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  animation: popIn 0.3s ease;
-  transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(238, 174, 202, 0.3);
-}
-
-.interest-tag:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 15px rgba(238, 174, 202, 0.4);
-}
-
-@keyframes popIn {
-  from {
-    transform: scale(0);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
 
 /* Distance Preference */
@@ -814,29 +1048,17 @@ const findAreaCodeByLocation = (locationValue) => {
   background: linear-gradient(90deg, #EEAECA, #4caf50);
   outline: none;
   -webkit-appearance: none;
-  appearance: none;
   margin-bottom: 15px;
 }
 
 .distance-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
   background: #4caf50;
   cursor: pointer;
   transition: all 0.3s ease;
-}
-
-.distance-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
-}
-
-.distance-slider:disabled::-webkit-slider-thumb {
-  background: #ccc;
-  cursor: default;
 }
 
 .distance-display {
@@ -862,36 +1084,499 @@ const findAreaCodeByLocation = (locationValue) => {
 .unit-toggle:hover {
   background: #EEAECA;
   color: white;
+}
+
+/* Tickets Tab */
+.tickets-tab {
+  min-height: 400px;
+}
+
+.tickets-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.tickets-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tickets-count {
+  background: linear-gradient(135deg, #c01a62, #fe6bab);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tickets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.ticket-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.ticket-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(192, 26, 98, 0.15);
+  border-color: #c01a62;
+}
+
+.ticket-card-header {
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border-bottom: 2px dashed #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.ticket-card-header::before,
+.ticket-card-header::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #c01a62;
+  border-radius: 50%;
+  bottom: -11px;
+}
+
+.ticket-card-header::before {
+  left: -10px;
+}
+
+.ticket-card-header::after {
+  right: -10px;
+}
+
+.ticket-type-badge {
+  background: #4caf50;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ticket-card-ref {
+  color: #c01a62;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.ticket-card-body {
+  padding: 20px;
+  position: relative;
+}
+
+.ticket-card-body h4 {
+  margin: 0 0 15px;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  padding-right: 60px;
+}
+
+.ticket-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.ticket-info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+  font-size: 13px;
+}
+
+.ticket-info-item i {
+  color: #c01a62;
+  font-size: 14px;
+  width: 18px;
+}
+
+.ticket-info-item.price {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+/* Ticket Actions */
+.ticket-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.view-ticket-btn, .download-ticket-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.3s ease;
+}
+
+.view-ticket-btn {
+  background: #c01a62;
+  color: white;
+}
+
+.view-ticket-btn:hover {
+  background: #fe6bab;
   transform: translateY(-2px);
 }
 
-/* Scrollbar styling */
-.interests-grid::-webkit-scrollbar {
-  width: 8px;
+.download-ticket-btn {
+  background: #4caf50;
+  color: white;
 }
 
-.interests-grid::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+.download-ticket-btn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
 }
 
-.interests-grid::-webkit-scrollbar-thumb {
-  background: #EEAECA;
-  border-radius: 4px;
+.qr-preview {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #c01a62;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.interests-grid::-webkit-scrollbar-thumb:hover {
-  background: #ffb5d1;
+.qr-preview:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 15px rgba(192, 26, 98, 0.3);
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
+.qr-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ticket-card-footer {
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #999;
+}
+
+.ticket-price-small {
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.no-tickets {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8f9fa;
+  border-radius: 20px;
+}
+
+.no-tickets-icon i {
+  font-size: 60px;
+  color: #ccc;
+  margin-bottom: 15px;
+}
+
+.no-tickets h4 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.no-tickets p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.browse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #c01a62, #fe6bab);
+  color: white;
+  text-decoration: none;
+  border-radius: 30px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.browse-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(192, 26, 98, 0.3);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 30px;
+  padding: 30px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.modal-ticket {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.modal-ticket-header {
+  padding: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px dashed #e0e0e0;
+}
+
+.modal-ticket-brand {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.modal-ticket-icon {
+  font-size: 40px;
+}
+
+.modal-ticket-brand h2 {
+  margin: 0 0 5px;
+  font-size: 22px;
+  color: #333;
+}
+
+.modal-ticket-ref {
+  font-size: 13px;
+  color: #666;
+}
+
+.modal-ticket-status {
+  padding: 6px 15px;
+  background: #4caf50;
+  color: white;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.modal-ticket-divider {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #c01a62, #c01a62 10px, transparent 10px, transparent 20px);
+  margin: 0 25px;
+}
+
+.modal-ticket-body {
+  padding: 30px;
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  gap: 30px;
+}
+
+.modal-ticket-info {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modal-info-row {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+  border-bottom: 1px dashed #f0f0f0;
+}
+
+.modal-info-row.total {
+  border-top: 2px solid #c01a62;
+  border-bottom: 2px solid #c01a62;
+  padding: 15px 0;
+  margin: 5px 0;
+}
+
+.modal-info-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.modal-info-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-info-row.total .modal-info-value {
+  color: #c01a62;
+  font-size: 18px;
+}
+
+.modal-ticket-qr {
+  text-align: center;
+}
+
+.modal-qr-container {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.modal-qr-code {
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  padding: 8px;
+  background: white;
+  border: 2px solid #c01a62;
+  margin-bottom: 10px;
+}
+
+.modal-qr-text {
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+}
+
+.modal-ticket-footer {
+  padding: 20px 25px;
+  background: #f8f9fa;
+  border-top: 2px solid #f0f0f0;
+}
+
+.modal-download-btn {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #c01a62, #fe6bab);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.modal-download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(192, 26, 98, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
   .profile-header {
-    padding: 30px 20px 15px 20px;
+    flex-direction: column;
+    gap: 15px;
   }
   
-  .profile-tabs {
-    padding: 0 15px;
+  .ticket-indicator {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .tickets-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ticket-info-grid {
+    grid-template-columns: 1fr;
   }
   
   .tab-btn {
@@ -899,24 +1584,18 @@ const findAreaCodeByLocation = (locationValue) => {
     font-size: 13px;
   }
   
-  .tab-content {
-    padding: 20px;
+  .modal-ticket-body {
+    grid-template-columns: 1fr;
   }
   
-  .interests-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  .modal-ticket-header {
+    flex-direction: column;
+    gap: 15px;
   }
   
-  .distance-options {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .interest-emoji {
-    font-size: 24px;
-  }
-  
-  .interest-name {
-    font-size: 12px;
+  .modal-qr-code {
+    width: 150px;
+    height: 150px;
   }
 }
 </style>

@@ -74,8 +74,8 @@
               <span>R {{ subtotal }}</span>
             </div>
             <div class="total-line">
-              <span>Service Fee (5%)</span>
-              <span>R {{ fee }}</span>
+              <span>Service Fee</span>
+              <span>R 10</span>
             </div>
             <div class="total-line final">
               <span>Total</span>
@@ -174,37 +174,91 @@
               <span v-else>Pay R {{ total }}</span>
             </button>
 
-            <!-- Status Messages -->
-            <div v-if="status === 'success'" class="success-message">
-              <i class="uil uil-check-circle"></i>
-              <div>
-                <strong>Payment successful!</strong>
-                <p v-if="reference">Reference: {{ reference }}</p>
+            <!-- Success Message with Clear Profile Notification -->
+            <div v-if="status === 'success'" class="success-section">
+              <div class="success-message">
+                <i class="uil uil-check-circle"></i>
+                <div>
+                  <strong>Payment Successful!</strong>
+                  <p class="reference">Order #{{ reference }}</p>
+                  
+                  <!-- Clear Profile Notification -->
+                  <div class="profile-notification-card">
+                    <div class="notification-icon">
+                      <i class="uil uil-ticket"></i>
+                    </div>
+                    <div class="notification-content">
+                      <h4>✓ Ticket Saved to Your Profile</h4>
+                      <p>Your ticket has been securely stored and is now available in your profile.</p>
+                      <router-link to="/profile" class="notification-link">
+                        Go to My Tickets <i class="uil uil-arrow-right"></i>
+                      </router-link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="ticket" class="premium-ticket">
+                <div class="ticket-ribbon">
+                  <span>CONFIRMED</span>
+                </div>
+                
+                <div class="ticket-header">
+                  <div class="ticket-brand">
+                    <div class="ticket-icon">🎟️</div>
+                    <div>
+                      <h3>{{ ticket.title }}</h3>
+                      <p class="ticket-ref">#{{ ticket.reference }}</p>
+                    </div>
+                  </div>
+                  <div class="ticket-price">R{{ ticket.total }}</div>
+                </div>
+
+                <div class="ticket-dashed-line">
+                  <span class="dot-left"></span>
+                  <span class="dot-right"></span>
+                </div>
+
+                <div class="ticket-content">
+                  <div class="ticket-details">
+                    <div class="detail-row">
+                      <span class="detail-label">Event Date</span>
+                      <span class="detail-value">{{ ticket.date }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Attendee</span>
+                      <span class="detail-value">{{ ticket.customerName }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Email</span>
+                      <span class="detail-value">{{ ticket.customerEmail }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Quantity</span>
+                      <span class="detail-value">{{ ticket.quantity }} ticket(s)</span>
+                    </div>
+                  </div>
+
+                  <div class="ticket-qr-section">
+                    <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR Code" class="qr-code">
+                    <p class="qr-text">Scan at entrance</p>
+                  </div>
+                </div>
+
+                <div class="ticket-footer">
+                  <button class="btn-download" @click="downloadTicket">
+                    <i class="uil uil-download-alt"></i> Download Ticket
+                  </button>
+                  <router-link to="/profile" class="btn-profile">
+                    <i class="uil uil-ticket"></i> View in Profile
+                  </router-link>
+                </div>
               </div>
             </div>
 
             <div v-if="status === 'failed'" class="error-message">
               <i class="uil uil-exclamation-circle"></i>
               Payment failed. Please try again.
-            </div>
-
-            <div v-if="status === 'success' && ticket" class="ticket-card">
-              <div class="ticket-header">
-                <h3>Your Ticket</h3>
-                <span>#{{ ticket.reference }}</span>
-              </div>
-              <div class="ticket-body">
-                <div class="ticket-info">
-                  <p><strong>Event:</strong> {{ ticket.title }}</p>
-                  <p><strong>Date:</strong> {{ ticket.date }}</p>
-                  <p><strong>Qty:</strong> {{ ticket.quantity }}</p>
-                  <p><strong>Total:</strong> R {{ ticket.total }}</p>
-                </div>
-                <img v-if="qrDataUrl" :src="qrDataUrl" alt="Ticket QR code" class="ticket-qr">
-              </div>
-              <button class="download-ticket-btn" @click="downloadTicket">
-                Download Ticket
-              </button>
             </div>
           </div>
         </section>
@@ -231,7 +285,7 @@ const EMPTY_ORDER = {
 
 const hasRouteEvent = Number.isInteger(Number(route.query.eventId)) && Number(route.query.eventId) > 0;
 
-// Order data from query params (empty unless user clicked Book Now)
+// Order data from query params
 const order = ref(
   hasRouteEvent
     ? {
@@ -276,8 +330,7 @@ const subtotal = computed(() => {
   );
 });
 const isCartEmpty = computed(() => cartItems.value.length === 0 && !order.value.eventId);
-const fee = computed(() => Math.round(subtotal.value * 0.05));
-const total = computed(() => subtotal.value + fee.value);
+const total = computed(() => subtotal.value + 10); // Flat R10 service fee
 
 const validEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email));
 
@@ -432,9 +485,24 @@ async function clearCart() {
   }
 }
 
-function makeRef() {
-  const code = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `PAY-${code}`;
+function generateTicketReference() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = 'TIX-';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function formatDateTime() {
+  const now = new Date();
+  return now.toLocaleString('en-ZA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 async function createTicketWithQr() {
@@ -444,36 +512,48 @@ async function createTicketWithQr() {
         eventId: order.value.eventId,
         title: order.value.title,
         date: order.value.date,
-        quantity: qty.value
+        quantity: qty.value,
+        pricePerTicket: order.value.pricePerTicket
       }];
+  
   const totalQty = itemsForTicket.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const summaryTitle = itemsForTicket.length === 1 ? itemsForTicket[0].title : `${itemsForTicket.length} events`;
 
   const qrPayload = JSON.stringify({
-    reference: reference.value,
-    items: itemsForTicket.map((item) => ({
-      eventId: item.eventId,
-      title: item.title,
-      quantity: item.quantity
-    })),
-    title: summaryTitle,
-    quantity: totalQty,
-    total: total.value
+    ref: reference.value,
+    event: itemsForTicket.map((item) => item.eventId).join(", "),
+    qty: totalQty
   });
 
   qrDataUrl.value = await QRCode.toDataURL(qrPayload, {
-    width: 260,
+    width: 200,
     margin: 1
   });
 
   ticket.value = {
+    id: `ticket-${Date.now()}`,
     reference: reference.value,
     eventId: itemsForTicket.map((item) => item.eventId).join(", "),
     title: summaryTitle,
     date: itemsForTicket.map((item) => item.date).filter(Boolean).join(" | "),
     quantity: totalQty,
-    total: total.value
+    total: total.value,
+    customerName: customer.name,
+    customerEmail: customer.email,
+    purchasedAt: formatDateTime(),
+    status: 'active',
+    qrCode: qrDataUrl.value
   };
+}
+
+function saveTicketToProfile() {
+  if (!ticket.value) return;
+
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!currentUser.tickets) currentUser.tickets = [];
+  currentUser.tickets.push(ticket.value);
+  localStorage.setItem('user', JSON.stringify(currentUser));
+  localStorage.setItem('userTickets', JSON.stringify(currentUser.tickets));
 }
 
 function loadImage(src) {
@@ -489,42 +569,36 @@ async function downloadTicket() {
   if (!ticket.value || !qrDataUrl.value) return;
 
   const canvas = document.createElement("canvas");
-  canvas.width = 1100;
-  canvas.height = 620;
+  canvas.width = 800;
+  canvas.height = 400;
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = "#0f172a";
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "#111827";
-  ctx.fillRect(20, 20, canvas.width - 40, canvas.height - 40);
+  ctx.strokeStyle = "#c01a62";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
 
-  ctx.fillStyle = "#f8fafc";
-  ctx.font = "700 52px Arial";
-  ctx.fillText("South of Somewhere Ticket", 60, 95);
+  ctx.fillStyle = "#333333";
+  ctx.font = "bold 24px Arial";
+  ctx.fillText("EVENT TICKET", 40, 60);
 
-  ctx.font = "600 30px Arial";
-  ctx.fillText(`Ref: ${ticket.value.reference}`, 60, 155);
-
-  ctx.font = "500 28px Arial";
-  ctx.fillText(`Event: ${ticket.value.title}`, 60, 230);
-  ctx.fillText(`Date: ${ticket.value.date}`, 60, 280);
-  ctx.fillText(`Event ID: ${ticket.value.eventId}`, 60, 330);
-  ctx.fillText(`Quantity: ${ticket.value.quantity}`, 60, 380);
-  ctx.fillText(`Total Paid: R ${ticket.value.total}`, 60, 430);
+  ctx.font = "16px Arial";
+  ctx.fillText(`Ref: ${ticket.value.reference}`, 40, 100);
+  ctx.fillText(`Event: ${ticket.value.title}`, 40, 140);
+  ctx.fillText(`Date: ${ticket.value.date}`, 40, 180);
+  ctx.fillText(`Attendee: ${ticket.value.customerName}`, 40, 220);
+  ctx.fillText(`Qty: ${ticket.value.quantity} | Total: R${ticket.value.total}`, 40, 260);
 
   const qrImage = await loadImage(qrDataUrl.value);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(760, 160, 280, 280);
-  ctx.drawImage(qrImage, 770, 170, 260, 260);
-
-  ctx.font = "400 20px Arial";
-  ctx.fillStyle = "#cbd5e1";
-  ctx.fillText("Present this QR at entry", 760, 475);
+  ctx.fillStyle = "#f5f5f5";
+  ctx.fillRect(500, 80, 250, 250);
+  ctx.drawImage(qrImage, 510, 90, 230, 230);
 
   const link = document.createElement("a");
   link.href = canvas.toDataURL("image/png");
-  link.download = `${ticket.value.reference}-ticket.png`;
+  link.download = `${ticket.value.reference}.png`;
   link.click();
 }
 
@@ -566,11 +640,13 @@ async function pay() {
       throw new Error(checkoutResult?.message || "Checkout failed");
     }
 
-    reference.value = `ORD-${checkoutResult.order_id}-${makeRef()}`;
+    reference.value = generateTicketReference();
     await createTicketWithQr();
+    saveTicketToProfile();
     await loadCart();
+    
     status.value = "success";
-    showBanner(`Payment completed successfully! Order #${checkoutResult.order_id}`, "success");
+    showBanner("Payment successful! Your ticket has been saved.", "success");
   } catch (err) {
     console.error(err);
     status.value = "failed";
@@ -603,7 +679,6 @@ onMounted(async () => {
   padding: 20px;
 }
 
-/* Glass Card Effect */
 .glass-card {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -612,7 +687,6 @@ onMounted(async () => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Header */
 .payments-header {
   display: flex;
   justify-content: space-between;
@@ -621,36 +695,17 @@ onMounted(async () => {
   padding: 0 10px;
 }
 
-.brand {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.logo {
-  width: 50px;
-  height: 50px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  font-size: 22px;
-  color: #fff;
-  background: linear-gradient(135deg, #2d3436 0%, #000000 100%);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-}
-
 h1 {
   margin: 0;
   font-size: 26px;
-  color: rgb(255, 255, 255);
+  color: white;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
 }
 
 .subtitle {
   margin: 4px 0 0;
   font-size: 13px;
-  color: rgba(250, 250, 250, 0.9);
+  color: rgba(255,255,255,0.9);
 }
 
 .stats {
@@ -670,14 +725,12 @@ h1 {
   font-weight: 500;
 }
 
-/* Content */
 .payments-content {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 10px;
 }
 
-/* Banner */
 .banner {
   display: flex;
   justify-content: space-between;
@@ -691,7 +744,6 @@ h1 {
   color: white;
 }
 
-.banner.info { background: rgba(64, 156, 255, 0.2); }
 .banner.success { background: rgba(76, 175, 80, 0.2); }
 .banner.warning { background: rgba(255, 193, 7, 0.2); }
 .banner.error { background: rgba(244, 67, 54, 0.2); }
@@ -705,7 +757,6 @@ h1 {
   padding: 0 5px;
 }
 
-/* Grid Layout */
 .payments-grid {
   display: grid;
   gap: 20px;
@@ -719,7 +770,6 @@ h1 {
   }
 }
 
-/* Order Summary */
 .order-summary {
   padding: 25px;
 }
@@ -752,6 +802,7 @@ h1 {
   display: flex;
   justify-content: space-between;
   margin-bottom: 15px;
+  align-items: center;
 }
 
 .item-details, .item-date {
@@ -782,12 +833,6 @@ h1 {
   height: 1px;
   background: rgba(255, 255, 255, 0.2);
   margin: 20px 0;
-}
-
-.ticket-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .quantity-control {
@@ -833,10 +878,6 @@ h1 {
   text-align: center;
 }
 
-.qty-number.is-empty {
-  color: rgba(255, 255, 255, 0.45);
-}
-
 .totals {
   margin-top: 10px;
 }
@@ -875,12 +916,6 @@ h1 {
   transform: translateY(-2px);
 }
 
-.clear-cart-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Payment Form */
 .payment-form {
   padding: 25px;
 }
@@ -1073,88 +1108,288 @@ h1 {
   to { transform: rotate(360deg); }
 }
 
+.success-section {
+  margin-top: 20px;
+}
+
 .success-message {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 15px;
+  padding: 20px;
   background: rgba(76, 175, 80, 0.2);
   border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 30px;
+  border-radius: 20px;
   color: white;
+  margin-bottom: 20px;
 }
 
 .success-message i {
-  font-size: 24px;
+  font-size: 28px;
   color: #4caf50;
+  margin-right: 10px;
 }
 
-.success-message p {
-  margin: 5px 0 0;
-  font-size: 12px;
-  color: rgba(255,255,255,0.8);
+.reference {
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+  margin: 5px 0 15px;
 }
 
-.ticket-card {
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.ticket-header {
+/* Profile Notification Card */
+.profile-notification-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  color: white;
-  margin-bottom: 12px;
+  gap: 15px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 15px;
+  margin-top: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.ticket-header h3 {
-  margin: 0;
+.notification-icon {
+  width: 50px;
+  height: 50px;
+  background: #4caf50;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+}
+
+.notification-content h4 {
+  margin: 0 0 5px;
+  color: #AEE994;
   font-size: 16px;
 }
 
-.ticket-body {
-  display: flex;
-  gap: 14px;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+.notification-content p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.9);
 }
 
-.ticket-info p {
-  margin: 0 0 8px;
-  color: rgba(255,255,255,0.95);
+.notification-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+
+.notification-link:hover {
+  color: #AEE994;
+  border-bottom-color: #AEE994;
+}
+
+/* Premium Ticket Design */
+.premium-ticket {
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ticket-ribbon {
+  position: absolute;
+  top: 20px;
+  right: -30px;
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  padding: 8px 40px;
+  transform: rotate(45deg);
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.ticket-header {
+  padding: 25px;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-brand {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.ticket-icon {
+  font-size: 40px;
+}
+
+.ticket-brand h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.ticket-ref {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: #c01a62;
+  font-weight: 600;
+}
+
+.ticket-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: #c01a62;
+  background: rgba(192, 26, 98, 0.1);
+  padding: 10px 20px;
+  border-radius: 50px;
+}
+
+.ticket-dashed-line {
+  position: relative;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #c01a62, #c01a62 10px, transparent 10px, transparent 20px);
+  margin: 0 25px;
+}
+
+.dot-left, .dot-right {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #c01a62;
+  border-radius: 50%;
+  top: -7px;
+}
+
+.dot-left {
+  left: -8px;
+}
+
+.dot-right {
+  right: -8px;
+}
+
+.ticket-content {
+  padding: 25px;
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 20px;
+  background: #ffffff;
+}
+
+.ticket-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.detail-label {
+  width: 100px;
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detail-value {
+  flex: 1;
+  color: #333;
+  font-weight: 600;
   font-size: 13px;
 }
 
-.ticket-qr {
-  width: 140px;
-  height: 140px;
-  border-radius: 10px;
+.ticket-qr-section {
+  text-align: center;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 16px;
+}
+
+.qr-code {
+  width: 150px;
+  height: 150px;
+  border-radius: 12px;
+  padding: 8px;
   background: white;
-  padding: 6px;
+  border: 2px solid #c01a62;
 }
 
-.download-ticket-btn {
-  margin-top: 12px;
-  width: 100%;
-  padding: 11px 14px;
-  border: none;
-  border-radius: 30px;
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
-  color: white;
+.qr-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
   font-weight: 600;
+}
+
+.ticket-footer {
+  display: flex;
+  gap: 10px;
+  padding: 20px 25px;
+  background: #f8f9fa;
+  border-top: 2px solid #f0f0f0;
+}
+
+.btn-download, .btn-profile {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
 }
 
-.download-ticket-btn:hover {
-  filter: brightness(1.06);
+.btn-download {
+  background: linear-gradient(135deg, #c01a62, #fe6bab);
+  color: white;
 }
 
-/* Responsive */
+.btn-profile {
+  background: white;
+  color: #c01a62;
+  border: 2px solid #c01a62;
+}
+
+.btn-download:hover, .btn-profile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(192, 26, 98, 0.2);
+}
+
+.btn-profile:hover {
+  background: #c01a62;
+  color: white;
+}
+
 @media (max-width: 768px) {
   .payments-header {
     flex-direction: column;
@@ -1165,17 +1400,35 @@ h1 {
   .order-item {
     flex-direction: column;
     gap: 15px;
-  }
-  
-  .ticket-row {
-    flex-direction: column;
-    gap: 15px;
     align-items: flex-start;
   }
   
-  .quantity-control {
-    width: 100%;
-    justify-content: center;
+  .ticket-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
+  }
+  
+  .detail-label {
+    width: auto;
+  }
+  
+  .ticket-footer {
+    flex-direction: column;
+  }
+  
+  .ticket-ribbon {
+    right: -35px;
+  }
+  
+  .profile-notification-card {
+    flex-direction: column;
+    text-align: center;
   }
 }
 </style>
