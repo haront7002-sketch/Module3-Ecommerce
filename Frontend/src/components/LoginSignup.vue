@@ -109,7 +109,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
@@ -120,9 +120,11 @@ export default {
     const router = useRouter()
     const store = useStore()
 
-    // Generate unique ID for this component instance
-    const uniqueId = Math.random().toString(36).substring(2, 10)
-    const checkboxId = `reg-log-${uniqueId}`
+const handleLogin = async () => {
+  if (!loginForm.email || !loginForm.password) {
+    alert('Please fill in all fields')
+    return
+  }
 
     // State
     const isFlipped = ref(false)

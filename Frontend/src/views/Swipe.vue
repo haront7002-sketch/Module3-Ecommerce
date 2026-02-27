@@ -261,6 +261,48 @@ const isDragging = ref(false)
 const cards = ref([])
 const page = ref(1)
 const hasMoreEvents = ref(true)
+const loading = ref(false)
+
+const normalizedEvents = computed(() =>
+  (store.state.events || []).map((event) => ({
+    ...event,
+    id: event.id ?? event.event_id,
+    title: event.title ?? event.event_title ?? 'Untitled Event'
+  }))
+)
+
+const eventStore = {
+  get loading() {
+    return loading.value
+  },
+  get events() {
+    return normalizedEvents.value
+  },
+  async fetchEvents() {
+    loading.value = true
+    try {
+      await store.dispatch('getEvents')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const favouritesStore = {
+  get favouritesCount() {
+    return (store.state.favourites || []).length
+  },
+  async addToFavourites(event) {
+    return store.dispatch('addFavourite', event)
+  },
+  async fetchFavourites() {
+    return store.dispatch('fetchFavourites')
+  }
+}
+
+const authStore = computed(() => ({
+  user: store.state.me || JSON.parse(localStorage.getItem('user') || 'null')
+}))
 
 // Computed
 const visibleEvents = computed(() => {
