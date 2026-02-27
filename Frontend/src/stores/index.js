@@ -327,7 +327,11 @@ export default createStore({
           return { success: false, error: data?.message || 'Login failed' }
         }
         commit('setToken', data.token)
-        await dispatch('fetchMe')
+        try {
+          await dispatch('fetchMe')
+        } catch (error) {
+          console.warn('Login succeeded but profile fetch failed:', error)
+        }
         return { success: true, token: data.token, user: state.me }
       } catch (error) {
         console.error('Login error:', error)
@@ -347,7 +351,11 @@ export default createStore({
           return { success: false, error: data?.message || 'Signup failed' }
         }
         commit('setToken', data.token)
-        await dispatch('fetchMe')
+        try {
+          await dispatch('fetchMe')
+        } catch (error) {
+          console.warn('Signup succeeded but profile fetch failed:', error)
+        }
         return { success: true, token: data.token, user: state.me }
       } catch (error) {
         console.error('Register error:', error)
