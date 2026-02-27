@@ -80,7 +80,18 @@ const login = async (req, res) => {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        let isMatch = false;
+        try {
+            isMatch = await bcrypt.compare(password, user.password);
+        } catch {
+            isMatch = false;
+        }
+
+        // Backward compatibility for legacy accounts with plain-text passwords.
+        if (!isMatch && typeof user.password === 'string' && user.password === password) {
+            isMatch = true;
+        }
+
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
