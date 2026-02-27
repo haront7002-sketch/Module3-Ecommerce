@@ -102,7 +102,17 @@
       <div class="events-panel glass-card">
         <div class="events-header">
           <h2>{{ selectedDateLabel }}</h2>
-          <span class="event-count">{{ eventStore.filteredEvents.length }} events</span>
+          <div class="events-header-actions">
+            <span class="event-count">{{ eventStore.filteredEvents.length }} events</span>
+            <button
+              v-if="canLoadAllEvents"
+              @click="loadAllEvents"
+              class="load-more-btn load-all-btn"
+              :disabled="eventStore.loading"
+            >
+              Load All Events
+            </button>
+          </div>
         </div>
 
         <div v-if="eventStore.loading" class="loading-state">
@@ -115,9 +125,9 @@
           <h3>No events found</h3>
           <p>Try selecting a different date or adjusting your filters</p>
           <div v-if="canLoadMoreFromEmpty" class="load-more">
-            <button @click="loadMoreEvents" class="load-more-btn" :disabled="eventStore.loading">
+            <button @click="loadAllEvents" class="load-more-btn" :disabled="eventStore.loading">
               <span v-if="eventStore.loading" class="loader-small"></span>
-              <span v-else>Load More Events</span>
+              <span v-else>Load All Events</span>
             </button>
           </div>
         </div>
@@ -173,11 +183,11 @@
           </button>
           
           <div class="modal-header">
-            <img :src="selectedEvent.image_url || 'https://placehold.co/280x160?text=Event'" alt="Event image" class="modal-image">
-            <h2>{{ selectedEvent.title }}</h2>
+            <img class="modal-image" :src="selectedEvent.image_url || 'https://placehold.co/280x160?text=Event'" alt="Event image" />
           </div>
 
           <div class="modal-body">
+            <h2 class="modal-title">{{ selectedEvent.title }}</h2>
             <p class="modal-description">{{ selectedEvent.description }}</p>
 
             <div class="modal-info">
@@ -194,7 +204,7 @@
                 <span>{{ selectedEvent.category }}</span>
               </div>
               <div class="info-row">
-                <i class="uil uil-dollar-alt"></i>
+                <i class="uil uil-tag"></i>
                 <span>R {{ selectedEvent.price }} per ticket</span>
               </div>
               <div class="info-row">
@@ -361,6 +371,14 @@ const canLoadMoreFromEmpty = computed(() =>
   Boolean(selectedDate.value) &&
   filteredEvents.value.length === 0 &&
   filteredEventsIgnoringDate.value.length > 0
+)
+
+const canLoadAllEvents = computed(() =>
+  Boolean(
+    selectedDate.value ||
+    selectedCategories.value.length > 0 ||
+    searchQuery.value.trim()
+  )
 )
 
 const eventsByDate = computed(() => {
@@ -633,9 +651,12 @@ const loadFavourites = async () => {
   }
 }
 
-const loadMoreEvents = async () => {
-  // "Load More" on Explore expands from today's default view to all events.
+const loadAllEvents = () => {
+  // Reset Explore filters to show the full list.
   selectedDate.value = ''
+  selectedCategories.value = []
+  searchQuery.value = ''
+  showFilters.value = false
 }
 
 onMounted(() => {
@@ -998,6 +1019,12 @@ h1 {
   margin: 0;
 }
 
+.events-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .event-count {
   padding: 6px 15px;
   background: rgba(255, 255, 255, 0.2);
@@ -1238,6 +1265,11 @@ h1 {
   cursor: not-allowed;
 }
 
+.load-all-btn {
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1296,24 +1328,22 @@ h1 {
 }
 
 .modal-header {
-  padding: 30px 30px 20px;
-  text-align: center;
-  background: linear-gradient(135deg, rgba(238, 174, 202, 0.3), rgba(174, 233, 148, 0.3));
+  padding: 0;
+  background: transparent;
   border-radius: 20px 20px 0 0;
 }
 
 .modal-image {
   width: 100%;
-  max-height: 180px;
+  height: 220px;
   object-fit: cover;
-  border-radius: 12px;
-  margin-bottom: 15px;
+  border-radius: 20px 20px 0 0;
   display: block;
 }
 
-.modal-header h2 {
+.modal-title {
   color: white;
-  margin: 0;
+  margin: 0 0 12px;
   font-size: 24px;
 }
 
