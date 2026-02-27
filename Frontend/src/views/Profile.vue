@@ -411,7 +411,7 @@ const findAreaCodeByLocation = (locationValue) => {
 <style scoped>
 .profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #EEAECA 0%, #ffc9e0 50%, #AEE994 100%);
+  background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
   padding: 40px 20px;
   display: flex;
   justify-content: center;
@@ -723,7 +723,7 @@ const findAreaCodeByLocation = (locationValue) => {
 }
 
 .interest-tag {
-  background: linear-gradient(135deg, #EEAECA, #ffb5d1);
+  background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
   color: white;
   padding: 10px 20px;
   border-radius: 30px;
@@ -811,7 +811,7 @@ const findAreaCodeByLocation = (locationValue) => {
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: linear-gradient(90deg, #EEAECA, #4caf50);
+  background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
   outline: none;
   -webkit-appearance: none;
   appearance: none;

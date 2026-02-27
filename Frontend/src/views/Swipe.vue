@@ -359,18 +359,19 @@ const resetEvents = () => {
   eventStore.fetchEvents()
 }
 
-// Lifecycle
+// Lifecycle - REMOVED the overflow hidden lines to enable scrolling
 onMounted(async () => {
-  document.documentElement.style.overflow = 'hidden'
-  document.body.style.overflow = 'hidden'
+  // REMOVED: document.documentElement.style.overflow = 'hidden'
+  // REMOVED: document.body.style.overflow = 'hidden'
+  
   await store.dispatch('getCategories')
   await eventStore.fetchEvents()
   await favouritesStore.fetchFavourites()
 })
 
 onUnmounted(() => {
-  document.documentElement.style.overflow = ''
-  document.body.style.overflow = ''
+  // REMOVED: document.documentElement.style.overflow = ''
+  // REMOVED: document.body.style.overflow = ''
 })
 
 // Watch for auth changes
@@ -382,12 +383,16 @@ watch(user, () => {
 <style scoped>
 .swipe-container {
   min-height: 100vh;
+  height: auto; /* Allow container to grow with content */
   background: linear-gradient(135deg, #c01a62 0%, #fe6bab 50%, #9fef7d 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px;
   position: relative;
+  /* Enable scrolling */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 /* Updated Header - pushed to edges */
@@ -398,6 +403,7 @@ watch(user, () => {
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 0;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .brand-left {
@@ -474,6 +480,7 @@ h1 {
   text-align: center;
   padding: 80px 20px;
   color: white;
+  flex-shrink: 0;
 }
 
 .loader {
@@ -500,6 +507,7 @@ h1 {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0; /* Prevent card container from shrinking */
 }
 
 .action-buttons {
@@ -507,8 +515,10 @@ h1 {
   justify-content: center;
   gap: 25px;
   margin-top: 20px;
+  margin-bottom: 40px; /* Add bottom margin for better spacing */
   position: relative;
   z-index: 10;
+  flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .action-btn {
@@ -581,15 +591,17 @@ h1 {
   max-width: 400px;
   margin: 40px auto;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
 }
 
 .no-cards.active {
   display: block;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  margin: 0;
+  /* Changed from absolute to relative positioning for better scrolling */
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  margin: 40px auto;
   width: min(400px, calc(100% - 40px));
   z-index: 20;
   animation: fadeIn 0.5s ease;
@@ -661,6 +673,15 @@ h1 {
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.35);
   transform: translateY(-2px);
+}
+
+/* Add a spacer at the bottom for better scrolling */
+.swipe-container::after {
+  content: '';
+  display: block;
+  height: 20px;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 @keyframes slideIn {

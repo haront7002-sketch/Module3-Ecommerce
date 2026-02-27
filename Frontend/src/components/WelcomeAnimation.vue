@@ -282,13 +282,16 @@ export default {
 .hint.left .hint-icon  { background: rgba(192,26,98,0.3); }
 .hint.right .hint-icon { background: rgba(159,239,125,0.25); color: #9fef7d; }
 
-/* progress bar */
+/* progress bar - FIXED CENTERING */
 .progress-wrap {
   position: fixed;
   bottom: 48px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(280px, 70vw);
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   z-index: 20;
   opacity: 0;
   animation: fadeUp 0.5s 2.1s ease forwards;
@@ -296,9 +299,11 @@ export default {
 
 .progress-track {
   height: 3px;
+  width: min(280px, 70vw);
   background: rgba(255,255,255,0.25);
   border-radius: 2px;
   overflow: hidden;
+  margin: 0 auto;
 }
 
 .progress-fill {
@@ -323,5 +328,7 @@ export default {
   letter-spacing: 3px;
   text-transform: uppercase;
   margin-top: 10px;
+  width: 100%;
+  text-align: center;
 }
 </style>
