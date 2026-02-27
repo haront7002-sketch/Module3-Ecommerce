@@ -9,15 +9,14 @@ const User = {
             user_surname,
             email,
             password,
-            country,
-            zip_code
+            area
         } = userData;
 
         const [result] = await db.execute(
             `INSERT INTO users 
-            (user_name, user_surname, email, password, country, zip_code, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-            [user_name, user_surname, email, password, country, zip_code]
+            (user_name, user_surname, email, password, area)
+            VALUES (?, ?, ?, ?, ?)`,
+            [user_name, user_surname, email, password, area]
         );
 
         return {
@@ -39,7 +38,7 @@ const User = {
     // Find user by id (without password)
     findById: async (user_id) => {
         const [rows] = await db.execute(
-            `SELECT user_id, user_name, user_surname, email, country, zip_code, created_at
+            `SELECT user_id, user_name, user_surname, email, area
              FROM users
              WHERE user_id = ?`,
             [user_id]

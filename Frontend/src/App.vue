@@ -56,8 +56,7 @@
 import { RouterView, RouterLink } from 'vue-router'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useAuthStore } from './stores/auth'
+import { useStore } from 'vuex'
 import LoginSignup from './components/LoginSignup.vue'
 import WelcomeAnimation from './components/WelcomeAnimation.vue'
 import GoodbyeAnimation from './components/GoodbyeAnimation.vue'
@@ -71,8 +70,12 @@ export default {
   },
   setup() {
     const router = useRouter()
-    const authStore = useAuthStore()
-    const { isAuthenticated, hasPreferences } = storeToRefs(authStore)
+    const store = useStore()
+    const isAuthenticated = computed(() => store.state.isAuthenticated)
+    const hasPreferences = computed(() => {
+      const user = store.state.me || JSON.parse(localStorage.getItem('user') || 'null')
+      return !!(user?.profileComplete || localStorage.getItem('preferences'))
+    })
     
     // Animation states
     const showWelcomeAnimation = ref(false)
@@ -113,7 +116,7 @@ export default {
 
     // Goodbye animation completed
     const onGoodbyeCompleted = () => {
-      authStore.logout()
+      store.dispatch('logout')
       showGoodbyeAnimation.value = false
       // Force a hard reload to reset everything
       window.location.href = '/'

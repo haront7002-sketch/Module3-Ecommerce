@@ -69,15 +69,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
 import Card from '@/components/card.vue'
-import { useEventStore } from '@/stores/event'
-import { useFavouritesStore } from '@/stores/favourites'
-import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
-const eventStore = useEventStore()
-const favouritesStore = useFavouritesStore()
-const authStore = useAuthStore()
+const store = useStore()
 
 // State
 const currentEventIndex = ref(0)
@@ -85,6 +81,48 @@ const isDragging = ref(false)
 const cards = ref([])
 const page = ref(1)
 const hasMoreEvents = ref(true)
+const loading = ref(false)
+
+const normalizedEvents = computed(() =>
+  (store.state.events || []).map((event) => ({
+    ...event,
+    id: event.id ?? event.event_id,
+    title: event.title ?? event.event_title ?? 'Untitled Event'
+  }))
+)
+
+const eventStore = {
+  get loading() {
+    return loading.value
+  },
+  get events() {
+    return normalizedEvents.value
+  },
+  async fetchEvents() {
+    loading.value = true
+    try {
+      await store.dispatch('getEvents')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const favouritesStore = {
+  get favouritesCount() {
+    return (store.state.favourites || []).length
+  },
+  async addToFavourites(event) {
+    return store.dispatch('addFavourite', event)
+  },
+  async fetchFavourites() {
+    return store.dispatch('fetchFavourites')
+  }
+}
+
+const authStore = computed(() => ({
+  user: store.state.me || JSON.parse(localStorage.getItem('user') || 'null')
+}))
 
 // Computed
 const visibleEvents = computed(() => {
@@ -121,20 +159,14 @@ const handleSwipeComplete = async (direction, event) => {
 }
 
 const loadMoreEvents = async () => {
-  page.value++
-  await eventStore.fetchEvents({ 
-    page: page.value,
-    limit: 10,
-    ...getUserPreferences()
-  })
-  
-  if (eventStore.events.length === 0) {
-    hasMoreEvents.value = false
-  }
+  // Backend currently returns the full event list in one request.
+  hasMoreEvents.value = false
 }
 
 const getUserPreferences = () => {
-  const preferences = authStore.user?.preferences || {}
+  const preferences = authStore.value.user?.preferences ||
+    JSON.parse(localStorage.getItem('preferences') || 'null') ||
+    {}
   return {
     categories: preferences.interests,
     maxDistance: preferences.maxDistance,
@@ -190,25 +222,17 @@ const resetEvents = () => {
   currentEventIndex.value = 0
   page.value = 1
   hasMoreEvents.value = true
-  eventStore.fetchEvents({ 
-    page: 1,
-    limit: 10,
-    ...getUserPreferences()
-  })
+  eventStore.fetchEvents(getUserPreferences())
 }
 
 // Lifecycle
 onMounted(async () => {
-  await eventStore.fetchEvents({ 
-    page: 1,
-    limit: 10,
-    ...getUserPreferences()
-  })
+  await eventStore.fetchEvents(getUserPreferences())
   await favouritesStore.fetchFavourites()
 })
 
 // Watch for auth changes
-watch(() => authStore.user, () => {
+watch(() => authStore.value.user, () => {
   resetEvents()
 })
 </script>

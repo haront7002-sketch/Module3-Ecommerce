@@ -4,7 +4,7 @@ import User from '../Models/userModel.js';
 
 const register = async (req, res) => {
     try {
-        const { user_name, user_surname, email, password, country, zip_code } = req.body;
+        const { user_name, user_surname, email, password, area } = req.body;
         const normalizedEmail = (email || '').trim().toLowerCase();
 
         if (!normalizedEmail) {
@@ -23,8 +23,7 @@ const register = async (req, res) => {
             user_surname,
             email: normalizedEmail,
             password: hashedPassword,
-            country,
-            zip_code
+            area
         });
 
         const token = jwt.sign(
