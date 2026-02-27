@@ -110,7 +110,7 @@
               class="load-more-btn load-all-btn"
               :disabled="eventStore.loading"
             >
-              Load All Events
+             All Events
             </button>
           </div>
         </div>

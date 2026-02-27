@@ -1,38 +1,43 @@
-# southofsomewhere-sos
+# Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + Vite + Vuex frontend for Module3-Ecommerce.
 
-## Recommended IDE Setup
+## Stack
+- Vue 3 (`script setup` + Options where needed)
+- Vue Router
+- Vuex
+- Leaflet (map)
+- QRCode generation
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
+## Install & Run
 ```sh
+cd Frontend
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+App runs at:
+- `http://localhost:5173`
 
+## Build
 ```sh
 npm run build
 ```
+
+## Backend Dependency
+The frontend expects the API at:
+- `http://localhost:3000`
+
+If backend is not running, requests will fail with `Failed to fetch`.
+
+## Key Pages
+- Home (`/`): swipe events and add to favourites
+- Explore (`/explore`): search/filter/calendar + **Load All Events**
+- Map (`/map`): radius map view + **Load All Events**
+- Favourites (`/favourites`): saved events list + modal details
+- Payments (`/payments`): checkout summary, **5% service fee**, ticket generation
+- Profile (`/profile`): user info, interests, travel distance, tickets
+
+## Notes
+- Auth and user/session state are managed in `src/stores/index.js` (Vuex).
+- The app uses localStorage fallbacks for some user/favourites flows when needed.

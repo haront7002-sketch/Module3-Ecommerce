@@ -1,59 +1,90 @@
-# Backend (API)
+# Backend API
 
-Express + MySQL backend for Module3-Ecommerce.
+Express + MySQL backend for the event booking app.
 
 ## Requirements
-
-- Node.js 20+ (recommended: Node 20 LTS)
+- Node.js 20+
 - MySQL 8+
 
-## Setup
-
+## Install
 ```sh
 cd Backend
 npm install
 ```
 
 ## Environment Variables
-
-Create `Backend/.env` with:
+Create `Backend/.env`:
 
 ```env
 PORT=3000
 DB_HOST=localhost
+DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=root
 DB_NAME=s_o_s
+JWT_SECRET=secret
+JWT_EXPIRES_IN=7d
 ```
 
-## Database
+## Database Setup
+Import:
+- `Backend/S_O_S.sql`
 
-Import the SQL schema/data from:
-
-- `Backend/SOS.sql`
-
-Then make sure `DB_NAME` in `.env` matches the imported database name.
+Then ensure `DB_NAME` in `.env` matches your imported DB.
 
 ## Run
-
-Development (auto-reload):
-
+Development:
 ```sh
 npm run dev
 ```
 
 Production:
-
 ```sh
 npm start
 ```
 
-Server will run on:
-
+API base URL:
 - `http://localhost:3000`
 
-## API Base Paths
+## Main Routes
+Auth:
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
 
-- `GET /` - health check message
-- `/api/*` - carts, favourites, orders, tickets
-- `/api/auth/*` - auth endpoints
+Users:
+- `GET /user` (protected)
+- `PUT /user` (protected)
+- `PUT /user/preferences` (protected)
+
+Events/Categories:
+- `GET /events`
+- `GET /events/:id`
+- `GET /categories`
+- `GET /categories/:category_id`
+- `POST /categories`
+- `PATCH /categories/:category_id`
+- `DELETE /categories/:category_id`
+
+Cart/Favourites:
+- `GET /cart/:user_id`
+- `POST /cart`
+- `PATCH /cart/:cart_id`
+- `DELETE /cart/:cart_id`
+- `DELETE /cart/user/:user_id`
+- `GET /favourites/:user_id`
+- `POST /favourites`
+- `DELETE /favourites`
+
+Orders/Tickets:
+- `POST /checkout`
+- `POST /orders`
+- `POST /orders/items`
+- `GET /orders/:order_id`
+- `GET /users/:user_id/orders`
+- `PATCH /orders/:order_id/status`
+- `GET /orders/:order_id/tickets`
+- `POST /orders/:order_id/tickets/issue`
+
+Preferences:
+- `POST /preferences`

@@ -74,8 +74,8 @@
               <span>R {{ subtotal }}</span>
             </div>
             <div class="total-line">
-              <span>Service Fee</span>
-              <span>R 10</span>
+              <span>Service Fee (5%)</span>
+              <span>R {{ serviceFee }}</span>
             </div>
             <div class="total-line final">
               <span>Total</span>
@@ -94,7 +94,7 @@
         </section>
 
         <!-- Customer & Payment -->
-        <section class="payment-form glass-card">
+        <section class="payment-form glass-card" :class="{ disabled: customerDetailsDisabled }">
           <div class="form-header">
             <h2>Customer Details</h2>
             <span class="badge">{{ methodLabel }}</span>
@@ -109,6 +109,7 @@
                   type="text" 
                   placeholder="e.g., Antonio Williams"
                   :class="{ error: submitted && !customer.name }"
+                  :disabled="customerDetailsDisabled"
                 >
                 <p v-if="submitted && !customer.name" class="error-message">Name is required</p>
               </div>
@@ -120,6 +121,7 @@
                   type="email" 
                   placeholder="e.g., antonio@email.com"
                   :class="{ error: submitted && !validEmail }"
+                  :disabled="customerDetailsDisabled"
                 >
                 <p v-if="submitted && !validEmail" class="error-message">Enter a valid email</p>
               </div>
@@ -127,7 +129,7 @@
 
             <div class="form-group">
               <label>Phone (optional)</label>
-              <input v-model.trim="customer.phone" type="tel" placeholder="e.g., 071 234 5678">
+              <input v-model.trim="customer.phone" type="tel" placeholder="e.g., 071 234 5678" :disabled="customerDetailsDisabled">
             </div>
 
             <div class="divider"></div>
@@ -135,7 +137,7 @@
             <h3 class="section-title">Payment Method</h3>
             <div class="payment-methods">
               <label class="payment-method">
-                <input type="radio" value="card" v-model="method">
+                <input type="radio" value="card" v-model="method" :disabled="customerDetailsDisabled">
                 <div class="method-content">
                   <i class="uil uil-credit-card"></i>
                   <div>
@@ -146,7 +148,7 @@
               </label>
 
               <label class="payment-method">
-                <input type="radio" value="eft" v-model="method">
+                <input type="radio" value="eft" v-model="method" :disabled="customerDetailsDisabled">
                 <div class="method-content">
                   <i class="uil uil-bill"></i>
                   <div>
@@ -160,14 +162,14 @@
             <div class="divider"></div>
 
             <label class="terms-checkbox">
-              <input type="checkbox" v-model="accepted">
+              <input type="checkbox" v-model="accepted" :disabled="customerDetailsDisabled">
               <span>I agree to the terms & conditions</span>
             </label>
             <p v-if="submitted && !accepted" class="error-message">You must accept the terms</p>
 
             <button 
               class="pay-button" 
-              :disabled="processing" 
+              :disabled="processing || customerDetailsDisabled" 
               @click="pay"
             >
               <span v-if="processing" class="loading-spinner"></span>
@@ -330,7 +332,9 @@ const subtotal = computed(() => {
   );
 });
 const isCartEmpty = computed(() => cartItems.value.length === 0 && !order.value.eventId);
-const total = computed(() => subtotal.value + 10); // Flat R10 service fee
+const serviceFee = computed(() => Number((subtotal.value * 0.05).toFixed(2)));
+const total = computed(() => Number((subtotal.value + serviceFee.value).toFixed(2)));
+const customerDetailsDisabled = computed(() => isCartEmpty.value);
 
 const validEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email));
 
@@ -918,6 +922,23 @@ h1 {
 
 .payment-form {
   padding: 25px;
+}
+
+.payment-form.disabled {
+  opacity: 0.65;
+}
+
+.payment-form.disabled .form-header h2,
+.payment-form.disabled .section-title,
+.payment-form.disabled .form-group label,
+.payment-form.disabled .terms-checkbox span {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.payment-form.disabled .form-group input,
+.payment-form.disabled .payment-method,
+.payment-form.disabled .terms-checkbox {
+  filter: grayscale(0.4);
 }
 
 .form-header {
